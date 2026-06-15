@@ -57,6 +57,12 @@
     <ClInclude Include="DxgPanel.h">
       <Filter>위젯</Filter>
     </ClInclude>
+    <ClInclude Include="DxgScrollbar.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
+    <ClInclude Include="DxgListGrid.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DXGui.cpp">
@@ -78,6 +84,12 @@
       <Filter>위젯</Filter>
     </ClCompile>
     <ClCompile Include="DxgPanel.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgScrollbar.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgListGrid.cpp">
       <Filter>위젯</Filter>
     </ClCompile>
   </ItemGroup>

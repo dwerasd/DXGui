@@ -251,6 +251,8 @@
     <ClInclude Include="DxgEditbox.h" />
     <ClInclude Include="DxgPanel.h" />
     <ClInclude Include="DxgManager.h" />
+    <ClInclude Include="DxgScrollbar.h" />
+    <ClInclude Include="DxgListGrid.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DXGui.cpp" />
@@ -267,6 +269,12 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="DxgPanel.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgScrollbar.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgListGrid.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pch.cpp">

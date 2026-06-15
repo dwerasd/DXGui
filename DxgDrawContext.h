@@ -106,6 +106,9 @@ namespace dxgui
 
 		// 이번 프레임에 들어온 텍스트 입력(IME 결과 포함). 없으면 nullptr.
 		virtual const wchar_t* PollTextInput() const = 0;
+
+		// 이번 프레임 휠 누적(노치 단위, +위/-아래). 0=없음. (그리드/리스트 스크롤)
+		virtual float GetWheelDelta() const = 0;
 	};
 
 } // namespace dxgui
