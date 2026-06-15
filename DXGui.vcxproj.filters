@@ -63,6 +63,12 @@
     <ClInclude Include="DxgListGrid.h">
       <Filter>위젯</Filter>
     </ClInclude>
+    <ClInclude Include="DxgComboBox.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
+    <ClInclude Include="DxgOrderSink.h">
+      <Filter>코어</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DXGui.cpp">
@@ -90,6 +96,9 @@
       <Filter>위젯</Filter>
     </ClCompile>
     <ClCompile Include="DxgListGrid.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgComboBox.cpp">
       <Filter>위젯</Filter>
     </ClCompile>
   </ItemGroup>

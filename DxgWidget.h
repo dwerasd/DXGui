@@ -25,6 +25,7 @@ namespace dxgui
 		DXG_WIDGET_PANEL     = 5,
 		DXG_WIDGET_SCROLLBAR = 6,
 		DXG_WIDGET_LISTGRID  = 7,
+		DXG_WIDGET_COMBOBOX  = 8,
 	};
 
 
@@ -80,6 +81,10 @@ namespace dxgui
 		// ── 렌더 / 입력 ──
 		// 부모가 _origin(절대 screen pos) 전달 — 위젯은 m_Rect 더해 절대 좌표.
 		virtual void Render(IDrawContext& _ctx, _DXG_POINT _origin) = 0;
+
+		// 오버레이 패스(2차) — 매니저가 전체 Render 후 호출. 콤보 드롭다운 등 최상위로
+		// 떠야 하는(다른 위젯/패널 클립 위에 그려야 하는) 요소 전용. 기본 no-op.
+		virtual void RenderOverlay(IDrawContext& /*_ctx*/, _DXG_POINT /*_origin*/) {}
 
 		// 현재 프레임의 절대 사각형. 자식/hit-test 에서 사용.
 		_DXG_RECT AbsRect(_DXG_POINT _origin) const

@@ -44,15 +44,17 @@ namespace dxgui
 		size_t RootCount() const { return m_vRoots.size(); }
 
 		// 전 루트를 화면 원점(0,0) 기준으로 렌더(가시 위젯만).
+		// 2패스: (1) 일반 Render → (2) RenderOverlay(콤보 드롭다운 등 최상위 요소).
 		void Render(IDrawContext& _ctx)
 		{
 			const _DXG_POINT origin_(0.0f, 0.0f);
 			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
 			{
-				if (pRoot_ && pRoot_->IsVisible())
-				{
-					pRoot_->Render(_ctx, origin_);
-				}
+				if (pRoot_ && pRoot_->IsVisible()) { pRoot_->Render(_ctx, origin_); }
+			}
+			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
+			{
+				if (pRoot_ && pRoot_->IsVisible()) { pRoot_->RenderOverlay(_ctx, origin_); }
 			}
 		}
 	};

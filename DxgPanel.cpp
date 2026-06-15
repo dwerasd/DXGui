@@ -35,4 +35,19 @@ namespace dxgui
 		if (bClip_) { _ctx.PopClipRect(); }
 	}
 
+	// 오버레이 — 자식들의 떠있는 요소(콤보 드롭다운 등)를 클립 없이 전파.
+	void C_DXG_PANEL::RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin)
+	{
+		if (!m_bVisible) { return; }
+		const _DXG_RECT abs_ = AbsRect(_origin);
+		const _DXG_POINT childOrigin_ = abs_.GetTopLeft();
+		for (const std::unique_ptr<C_DXG_WIDGET>& pChild_ : m_vChildren)
+		{
+			if (pChild_ && pChild_->IsVisible())
+			{
+				pChild_->RenderOverlay(_ctx, childOrigin_);
+			}
+		}
+	}
+
 } // namespace dxgui

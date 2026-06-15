@@ -59,6 +59,7 @@ namespace dxgui
 		const char*       GetTypeName() const override { return "panel"; }
 
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
+		void RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin) override;
 	};
 
 } // namespace dxgui
