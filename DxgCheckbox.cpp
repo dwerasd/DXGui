@@ -1,0 +1,86 @@
+﻿// DxgCheckbox.cpp
+#include "DxgCheckbox.h"
+
+
+namespace dxgui
+{
+
+	void C_DXG_CHECKBOX::Render(IDrawContext& _ctx, _DXG_POINT _origin)
+	{
+		if (!m_bVisible) { return; }
+
+		const _DXG_RECT abs_ = AbsRect(_origin);
+
+		// 라벨 텍스트 측정 (hit-test 영역 자동 확장용).
+		float fTextW_ = 0.0f;
+		float fTextH_ = 0.0f;
+		const bool bHasText_ = (!m_sName.empty() && m_hFont != INVALID_FONT);
+		if (bHasText_)
+		{
+			const _DXG_SIZE sz_ = _ctx.MeasureText(m_hFont, m_sName.c_str(), m_fFontScale);
+			fTextW_ = sz_.w;
+			fTextH_ = sz_.h;
+		}
+
+		// hit-test 영역 — m_Rect.w/h 가 0 이면 박스 + 텍스트 영역 자동 산출.
+		const float fHitW_ = (abs_.w > 0.0f) ? abs_.w
+			: (m_fBoxSize + 6.0f + fTextW_);
+		const float fHitH_ = (abs_.h > 0.0f) ? abs_.h
+			: (m_fBoxSize > fTextH_ ? m_fBoxSize : fTextH_);
+		const _DXG_RECT hit_(abs_.x, abs_.y, fHitW_, fHitH_);
+
+		// 박스 — hit 영역 안에서 세로 중앙.
+		const _DXG_RECT box_(abs_.x, abs_.y + (fHitH_ - m_fBoxSize) * 0.5f,
+			m_fBoxSize, m_fBoxSize);
+
+		// 박스 — 배경 + 테두리 (2px 시인성 확보).
+		_ctx.FillRect(box_, m_BoxBgColor);
+		_ctx.DrawRectOutline(box_, m_BoxBorderColor, 2.0f);
+
+		// 체크 표시 — V (체크) 모양. 두 line segment.
+		if (m_pData != nullptr && *m_pData)
+		{
+			const float bx_ = box_.x;
+			const float by_ = box_.y;
+			const float bs_ = m_fBoxSize;
+			const float th_ = (bs_ * 0.16f < 2.0f) ? 2.0f : bs_ * 0.16f;
+			// 왼쪽 위 -> 가운데 아래 (짧은 변).
+			_ctx.DrawLine(_DXG_POINT(bx_ + bs_ * 0.20f, by_ + bs_ * 0.50f),
+			              _DXG_POINT(bx_ + bs_ * 0.42f, by_ + bs_ * 0.72f),
+			              m_BoxCheckColor, th_);
+			// 가운데 아래 -> 오른쪽 위 (긴 변).
+			_ctx.DrawLine(_DXG_POINT(bx_ + bs_ * 0.42f, by_ + bs_ * 0.72f),
+			              _DXG_POINT(bx_ + bs_ * 0.82f, by_ + bs_ * 0.25f),
+			              m_BoxCheckColor, th_);
+		}
+
+		// 라벨 텍스트 — 박스 우측.
+		if (bHasText_)
+		{
+			_ctx.DrawText(m_hFont,
+				_DXG_POINT(box_.x + m_fBoxSize + 6.0f,
+					abs_.y + (fHitH_ - fTextH_) * 0.5f),
+				m_sName.c_str(), m_TextColor, m_fFontScale);
+		}
+
+		// 클릭 — press 와 release 둘 다 hit 안일 때만 토글 (drag-out 무시).
+		if (m_bEnabled && m_pData != nullptr)
+		{
+			const bool bHov_ = _ctx.IsMouseHovered(hit_);
+			if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT) && bHov_)
+			{
+				m_bPressedInside = true;
+			}
+			if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+			{
+				if (m_bPressedInside && bHov_)
+				{
+					*m_pData = !(*m_pData);
+					if (m_OnChange) { m_OnChange(*m_pData); }
+				}
+				m_bPressedInside = false;
+			}
+		}
+	}
+
+} // namespace dxgui
