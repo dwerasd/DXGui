@@ -109,6 +109,10 @@ namespace dxgui
 
 		// 이번 프레임 휠 누적(노치 단위, +위/-아래). 0=없음. (그리드/리스트 스크롤)
 		virtual float GetWheelDelta() const = 0;
+
+		// IME 조합중(미확정) 문자열 — 에디트박스 인라인 프리뷰용. 없으면 nullptr.
+		// 확정 문자열은 PollTextInput 으로 들어옴(호스트가 IME 결과를 큐에 push).
+		virtual const wchar_t* PollComposition() const = 0;
 	};
 
 } // namespace dxgui

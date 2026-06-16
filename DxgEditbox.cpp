@@ -152,14 +152,30 @@ namespace dxgui
 				_DXG_POINT(abs_.x + 4.0f, fTextY_),
 				sShow_.c_str(), m_TextColor, m_fFontScale);
 		}
+		// IME 조합중(미확정) 인라인 프리뷰 — 버퍼 뒤에 밑줄로 표기. 확정은 PollTextInput 으로 들어옴.
+		float fCompW_ = 0.0f;
+		if (m_bFocused && m_hFont != INVALID_FONT)
+		{
+			const wchar_t* pComp_ = _ctx.PollComposition();
+			if (pComp_ != nullptr && pComp_[0] != L'\0')
+			{
+				const _DXG_SIZE szComp_ = _ctx.MeasureText(m_hFont, pComp_, m_fFontScale);
+				fCompW_ = szComp_.w;
+				const float fCx_ = abs_.x + 4.0f + fTextW_;
+				_ctx.DrawText(m_hFont, _DXG_POINT(fCx_, fTextY_), pComp_, m_BorderFocusColor, m_fFontScale);
+				_ctx.DrawLine(_DXG_POINT(fCx_, fTextY_ + fFontH_ - 1.0f),
+					_DXG_POINT(fCx_ + fCompW_, fTextY_ + fFontH_ - 1.0f), m_BorderFocusColor, 1.0f);
+			}
+		}
+
 		// caret blink — focused 시 60 frame 주기 (30 frame 보임, 30 frame 숨김).
-		// 두께 2.5px, BorderFocusColor (파랑) 로 명확. caret X = buffer 끝.
+		// 두께 2.5px, BorderFocusColor (파랑) 로 명확. caret X = buffer + 조합중 끝.
 		if (m_bFocused)
 		{
 			m_nBlinkCnt = (m_nBlinkCnt + 1) % 60;
 			if (m_nBlinkCnt < 30)
 			{
-				_ctx.FillRect(_DXG_RECT(abs_.x + 4.0f + fTextW_, fTextY_, 2.5f, fFontH_),
+				_ctx.FillRect(_DXG_RECT(abs_.x + 4.0f + fTextW_ + fCompW_, fTextY_, 2.5f, fFontH_),
 					m_BorderFocusColor);
 			}
 		}
