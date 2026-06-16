@@ -257,7 +257,6 @@
     <ClInclude Include="DxgOrderSink.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DXGui.cpp" />
     <ClCompile Include="DxgLabel.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>

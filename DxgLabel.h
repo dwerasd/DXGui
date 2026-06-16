@@ -41,8 +41,11 @@ namespace dxgui
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_LABEL; }
 		const char*       GetTypeName() const override { return "label"; }
 
-		// 렌더 — m_sName(wstring) 을 정렬 후 DrawText.
+		// 렌더 — m_sName(wstring) 을 정렬 후 DrawText. '\n' 포함 시 멀티라인.
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
+
+	private:
+		void renderMultiline_(IDrawContext& _ctx, _DXG_POINT _origin);	// '\n' 분할 렌더
 	};
 
 } // namespace dxgui
