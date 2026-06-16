@@ -30,6 +30,7 @@ namespace dxgui
 		DXG_WIDGET_TABS      = 10,
 		DXG_WIDGET_SPLITTER  = 11,
 		DXG_WIDGET_RADIO     = 12,
+		DXG_WIDGET_SPINNER   = 13,
 	};
 
 
