@@ -6,6 +6,7 @@
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
 #include "DxgKeys.h"
+#include "DxgComboBox.h"	// CloseAllPopups — 루트 콤보 드롭다운 강제 닫기
 
 #include <vector>
 #include <memory>
@@ -43,6 +44,19 @@ namespace dxgui
 
 		void Clear() { m_vRoots.clear(); }
 		size_t RootCount() const { return m_vRoots.size(); }
+
+		// 열린 팝업(루트 콤보 드롭다운) 강제 닫기 — 호스트가 창 비활성(포그라운드 상실) 시 호출.
+		// 모달 감지와 동일하게 루트 한정(현 프레임워크 규약). 가상함수 미추가(vtable/ABI 불변).
+		void CloseAllPopups()
+		{
+			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
+			{
+				if (pRoot_ && pRoot_->GetType() == DXG_WIDGET_COMBOBOX)
+				{
+					static_cast<C_DXG_COMBOBOX*>(pRoot_.get())->Close();
+				}
+			}
+		}
 
 		// 전 루트를 화면 원점(0,0) 기준으로 렌더(가시 위젯만).
 		// 2패스: (1) 일반 Render → (2) RenderOverlay(콤보 드롭다운 등 최상위 요소).
