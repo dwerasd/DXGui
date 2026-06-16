@@ -72,6 +72,12 @@
     <ClInclude Include="DxgTabs.h">
       <Filter>위젯</Filter>
     </ClInclude>
+    <ClInclude Include="DxgSplitter.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
+    <ClInclude Include="DxgRadio.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
     <ClInclude Include="DxgOrderSink.h">
       <Filter>코어</Filter>
     </ClInclude>
@@ -111,6 +117,12 @@
       <Filter>위젯</Filter>
     </ClCompile>
     <ClCompile Include="DxgTabs.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgSplitter.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgRadio.cpp">
       <Filter>위젯</Filter>
     </ClCompile>
   </ItemGroup>
