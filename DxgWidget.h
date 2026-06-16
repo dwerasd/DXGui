@@ -26,6 +26,7 @@ namespace dxgui
 		DXG_WIDGET_SCROLLBAR = 6,
 		DXG_WIDGET_LISTGRID  = 7,
 		DXG_WIDGET_COMBOBOX  = 8,
+		DXG_WIDGET_MENU      = 9,
 	};
 
 

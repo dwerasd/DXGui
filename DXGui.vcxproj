@@ -254,6 +254,7 @@
     <ClInclude Include="DxgScrollbar.h" />
     <ClInclude Include="DxgListGrid.h" />
     <ClInclude Include="DxgComboBox.h" />
+    <ClInclude Include="DxgMenu.h" />
     <ClInclude Include="DxgOrderSink.h" />
   </ItemGroup>
   <ItemGroup>
@@ -279,6 +280,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="DxgComboBox.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgMenu.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pch.cpp">
