@@ -48,10 +48,20 @@ namespace dxgui
 		void Render(IDrawContext& _ctx)
 		{
 			const _DXG_POINT origin_(0.0f, 0.0f);
+
+			// 모달 감지(메뉴 등 열린 팝업) — pass1 동안 입력 캡처로 아래 위젯 클릭 누수 차단.
+			bool bModal_ = false;
+			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
+			{
+				if (pRoot_ && pRoot_->IsModalActive()) { bModal_ = true; break; }
+			}
+
+			_ctx.SetInputCapture(bModal_);
 			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
 			{
 				if (pRoot_ && pRoot_->IsVisible()) { pRoot_->Render(_ctx, origin_); }
 			}
+			_ctx.SetInputCapture(false);	// 오버레이(메뉴 등)는 실 입력 받음
 			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
 			{
 				if (pRoot_ && pRoot_->IsVisible()) { pRoot_->RenderOverlay(_ctx, origin_); }

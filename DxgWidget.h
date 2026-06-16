@@ -87,6 +87,10 @@ namespace dxgui
 		// 떠야 하는(다른 위젯/패널 클립 위에 그려야 하는) 요소 전용. 기본 no-op.
 		virtual void RenderOverlay(IDrawContext& /*_ctx*/, _DXG_POINT /*_origin*/) {}
 
+		// 모달 활성(메뉴 등 열린 팝업) — 매니저가 true 면 pass1 위젯 입력을 캡처로 억제.
+		// 순수 오버레이 위젯(pass1 입력 없음)만 true 반환할 것. 기본 false.
+		virtual bool IsModalActive() const { return false; }
+
 		// 현재 프레임의 절대 사각형. 자식/hit-test 에서 사용.
 		_DXG_RECT AbsRect(_DXG_POINT _origin) const
 		{

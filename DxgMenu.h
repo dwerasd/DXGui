@@ -66,6 +66,7 @@ namespace dxgui
 
 		void Render(IDrawContext& /*_ctx*/, _DXG_POINT /*_origin*/) override {}	// 인라인 없음
 		void RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin) override;
+		bool IsModalActive() const override { return m_bOpen; }	// 열린 동안 모달(클릭 누수 차단)
 	};
 
 } // namespace dxgui

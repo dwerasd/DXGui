@@ -113,6 +113,10 @@ namespace dxgui
 		// IME 조합중(미확정) 문자열 — 에디트박스 인라인 프리뷰용. 없으면 nullptr.
 		// 확정 문자열은 PollTextInput 으로 들어옴(호스트가 IME 결과를 큐에 push).
 		virtual const wchar_t* PollComposition() const = 0;
+
+		// 입력 캡처(모달) — 매니저가 메뉴 등 모달 오버레이 동안 켠다. 켜진 동안 마우스
+		// 조회(Hovered/Clicked/Down/Released)와 휠은 차단(아래 위젯 입력 억제). GetMousePos 는 유지.
+		virtual void SetInputCapture(bool _bCapture) = 0;
 	};
 
 } // namespace dxgui
