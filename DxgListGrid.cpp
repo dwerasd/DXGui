@@ -18,9 +18,9 @@ namespace dxgui
 		, m_fCellPad(6.0f)
 		, m_HeaderBg(0xFFEDF1F6u)
 		, m_HeaderText(0xFF333A44u)
-		, m_GridLine(0xFFE2E6ECu)
+		, m_GridLine(0xFFC4CCD6u)	// 행/열 구분선(가독 위해 진한 회색)
 		, m_RowBg(0xFFFFFFFFu)
-		, m_RowAltBg(0xFFF7F9FCu)
+		, m_RowAltBg(0xFFF4F7FBu)
 		, m_SelBg(0xFFD6E4FFu)
 		, m_SelText(0xFF1A2638u)
 	{
@@ -142,6 +142,19 @@ namespace dxgui
 				{
 					_ctx.DrawLine(_DXG_POINT(abs_.x, fRowY + m_fRowH),
 						_DXG_POINT(abs_.x + fBodyW, fRowY + m_fRowH), m_GridLine, 1.0f);
+				}
+			}
+			// 세로 컬럼 구분선(본문 전체 높이, 가로 스크롤 반영).
+			if (m_bGridLines && nCols > 1)
+			{
+				float fVx = abs_.x - fScrollX;
+				for (int c = 0; c < nCols - 1; ++c)
+				{
+					fVx += m_vCols[c].fWidth;
+					if (fVx <= abs_.x) { continue; }
+					if (fVx >= abs_.x + fBodyW) { break; }
+					_ctx.DrawLine(_DXG_POINT(fVx, fBodyTop),
+						_DXG_POINT(fVx, fBodyTop + fBodyVisH), m_GridLine, 1.0f);
 				}
 			}
 			_ctx.PopClipRect();
