@@ -39,8 +39,9 @@ namespace dxgui
 		// 편집 상태
 		bool         m_bFocused;
 		std::wstring m_sBuffer;           // 편집 중 표시 버퍼 (TEXT) 또는 숫자 입력 버퍼
-		size_t       m_uCaret;            // 캐럿 위치 (m_sBuffer 인덱스)
-		bool         m_bSelected;         // focus 진입 직후 = true. 첫 입력/백스페이스 시 buffer 비움 + false.
+		size_t       m_uCaret;            // 캐럿 위치 (m_sBuffer 인덱스, 선택 끝점)
+		size_t       m_uSelAnchor;        // 선택 앵커. ==m_uCaret 이면 선택 없음(캐럿만).
+		bool         m_bDragSel;          // 좌버튼 드래그로 범위선택 중
 		int          m_nBlinkCnt;         // caret blink 카운터 (frame 단위, 60 = ~1초 주기)
 
 	public:
@@ -55,7 +56,8 @@ namespace dxgui
 			, m_BorderFocusColor(0xFF236EE0u)
 			, m_bFocused(false)
 			, m_uCaret(0)
-			, m_bSelected(false)
+			, m_uSelAnchor(0)
+			, m_bDragSel(false)
 			, m_nBlinkCnt(0)
 		{
 		}
@@ -77,7 +79,7 @@ namespace dxgui
 
 		E_DXG_EDIT_TYPE GetDataType() const { return m_DataType; }
 		bool   IsFocused() const            { return m_bFocused; }
-		bool   IsSelected() const           { return m_bSelected; }
+		bool   IsSelected() const           { return m_uSelAnchor != m_uCaret; }
 		size_t GetBufferSize() const        { return m_sBuffer.size(); }
 
 		// 타입

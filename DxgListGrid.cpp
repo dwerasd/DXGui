@@ -139,6 +139,17 @@ namespace dxgui
 			}
 		}
 
+		// 본문 우클릭 — 행 선택 후 콜백(컨텍스트 메뉴는 호출처 소유). HTS 식.
+		if (m_bEnabled && m_OnRightClick && _ctx.IsMouseClicked(DXG_MOUSE_RIGHT)
+			&& _ctx.IsMouseHovered(bodyAbs_))
+		{
+			const _DXG_POINT mp = _ctx.GetMousePos();
+			const int r = (m_fRowH > 0.0f)
+				? static_cast<int>(::floorf((mp.y - fBodyTop + fScrollY) / m_fRowH)) : -1;
+			if (r >= 0 && r < nRows) { m_nSelRow = r; }
+			m_OnRightClick(mp.x, mp.y);
+		}
+
 		// ── 본문(행) — 클립 후 가시 행만. 가로 스크롤 = 컬럼 x 를 -fScrollX 시프트 ──
 		if (fBodyVisH > 0.0f)
 		{

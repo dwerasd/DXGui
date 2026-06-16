@@ -9,5 +9,10 @@ namespace dxgui
 	inline constexpr int DXG_VK_BACK   = 0x08;	// VK_BACK
 	inline constexpr int DXG_VK_TAB    = 0x09;	// VK_TAB
 	inline constexpr int DXG_VK_RETURN = 0x0D;	// VK_RETURN
+	inline constexpr int DXG_VK_LEFT   = 0x25;	// VK_LEFT
+	inline constexpr int DXG_VK_RIGHT  = 0x27;	// VK_RIGHT
+	inline constexpr int DXG_VK_DELETE = 0x2E;	// VK_DELETE
+	inline constexpr int DXG_VK_HOME   = 0x24;	// VK_HOME
+	inline constexpr int DXG_VK_END    = 0x23;	// VK_END
 
 } // namespace dxgui

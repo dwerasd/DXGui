@@ -98,6 +98,7 @@ namespace dxgui
 		virtual _DXG_POINT GetMousePos() const = 0;
 		virtual bool IsMouseHovered(_DXG_RECT _rect) const = 0;
 		virtual bool IsMouseClicked(E_DXG_MOUSE_BUTTON _btn) const = 0;
+		virtual bool IsMouseDoubleClicked(E_DXG_MOUSE_BUTTON _btn) const = 0;	// 이번 프레임 더블클릭
 		virtual bool IsMouseDown(E_DXG_MOUSE_BUTTON _btn) const = 0;
 		virtual bool IsMouseReleased(E_DXG_MOUSE_BUTTON _btn) const = 0;
 

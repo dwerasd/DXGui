@@ -22,8 +22,10 @@ namespace dxgui
 
 		// 텍스트 편집(타이핑) 상태 — 스핀박스(타이핑 + ▲▼ 둘 다).
 		bool         m_bFocused;
-		bool         m_bSelected;	// 클릭 시 전체선택(첫 입력이 교체)
 		std::wstring m_sBuf;
+		size_t       m_uCaret;		// 캐럿 위치(선택 끝점)
+		size_t       m_uSelAnchor;	// 선택 앵커(==m_uCaret 이면 선택 없음)
+		bool         m_bDragSel;	// 드래그 범위선택 중
 		int          m_nBlink;
 
 		void setValue_(int _v)	// 클램프 후 적용 + onChange
@@ -58,7 +60,9 @@ namespace dxgui
 			, m_BtnHover(0xFFD6E4FFu)
 			, m_ArrowColor(0xFF5A6678u)
 			, m_bFocused(false)
-			, m_bSelected(false)
+			, m_uCaret(0)
+			, m_uSelAnchor(0)
+			, m_bDragSel(false)
 			, m_nBlink(0)
 		{
 		}
