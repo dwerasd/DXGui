@@ -41,18 +41,13 @@ namespace dxgui
 		};
 		_ctx.FillTriangle(tri, m_ArrowColor);
 
-		// 토글 / 외부 클릭 닫기 — 항목 클릭은 오버레이 패스에서 처리.
-		if (m_bEnabled && _ctx.IsMouseClicked(DXG_MOUSE_LEFT))
+		// 열기만 처리(헤더 클릭). 닫기/항목선택은 오버레이 패스에서 처리.
+		// 열린 동안은 모달(IsModalActive=true) → pass1 캡처로 이 블록도 차단되므로
+		// 닫기 로직을 여기 두면 동작하지 않는다. 닫기는 RenderOverlay 로 이동.
+		if (m_bEnabled && !m_bOpen && bHov && _ctx.IsMouseClicked(DXG_MOUSE_LEFT))
 		{
-			if (bHov)
-			{
-				m_bOpen = !m_bOpen;
-			}
-			else if (m_bOpen)
-			{
-				// 드롭다운 영역 밖이면 닫기(드롭다운 안이면 오버레이가 선택 처리).
-				if (!_ctx.IsMouseHovered(this->dropRect_(abs_))) { m_bOpen = false; }
-			}
+			m_bOpen = true;
+			m_bJustOpened = true;	// 연 클릭이 오버레이의 외부클릭 닫기를 같은 프레임에 트리거하지 않도록
 		}
 	}
 
@@ -80,6 +75,17 @@ namespace dxgui
 				if (m_nSel != i) { m_nSel = i; if (m_OnChange) { m_OnChange(i); } }
 				m_bOpen = false;
 			}
+		}
+
+		// 드롭다운 밖(헤더 포함) 클릭 → 닫기. 오버레이 패스(capture=false)에서만 동작.
+		// 연 프레임은 헤더 클릭이 곧 외부클릭이므로 1프레임 무시(즉시 닫힘 방지).
+		if (m_bJustOpened)
+		{
+			m_bJustOpened = false;
+		}
+		else if (m_bEnabled && _ctx.IsMouseClicked(DXG_MOUSE_LEFT) && !_ctx.IsMouseHovered(dd_))
+		{
+			m_bOpen = false;
 		}
 	}
 

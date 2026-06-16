@@ -19,6 +19,7 @@ namespace dxgui
 		std::vector<std::wstring> m_vItems;
 		int        m_nSel;
 		bool       m_bOpen;
+		bool       m_bJustOpened;	// 연 프레임 표식 — 오버레이의 외부클릭 닫기를 같은 클릭에서 1프레임 무시
 		FontHandle m_hFont;
 		float      m_fItemH;		// 드롭다운 항목 높이
 		float      m_fCellPad;
@@ -38,6 +39,7 @@ namespace dxgui
 		C_DXG_COMBOBOX()
 			: m_nSel(-1)
 			, m_bOpen(false)
+			, m_bJustOpened(false)
 			, m_hFont(INVALID_FONT)
 			, m_fItemH(24.0f)
 			, m_fCellPad(6.0f)
@@ -68,6 +70,9 @@ namespace dxgui
 		}
 		size_t ItemCount() const { return m_vItems.size(); }
 		bool   IsOpen() const { return m_bOpen; }
+		// 열린 동안 모달 — 매니저가 pass1 입력을 캡처해 아래 위젯으로의 클릭 누수 차단.
+		// (드롭다운 항목 클릭이 겹친 하단 버튼으로 관통하던 버그 차단.)
+		bool   IsModalActive() const override { return m_bOpen; }
 
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_COMBOBOX; }
 		const char*       GetTypeName() const override { return "combobox"; }
