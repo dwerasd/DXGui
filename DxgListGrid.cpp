@@ -2,10 +2,48 @@
 #include "DxgListGrid.h"
 
 #include <cmath>
+#include <algorithm>
+#include <cwchar>
 
 
 namespace dxgui
 {
+	namespace
+	{
+		// 셀 비교 — 둘 다 완전 숫자면 수치, 아니면 문자열(wcscmp). 음수=a<b.
+		int cellCompare_(const std::wstring& _a, const std::wstring& _b)
+		{
+			const auto parseNum = [](const std::wstring& _s, double& _out) -> bool
+			{
+				if (_s.empty()) { return false; }
+				wchar_t* pEnd = nullptr;
+				_out = ::wcstod(_s.c_str(), &pEnd);
+				return (pEnd != nullptr) && (*pEnd == L'\0');	// 전체가 숫자여야
+			};
+			double va = 0.0, vb = 0.0;
+			const bool na = parseNum(_a, va);
+			const bool nb = parseNum(_b, vb);
+			if (na && nb) { return (va < vb) ? -1 : (va > vb) ? 1 : 0; }
+			return ::wcscmp(_a.c_str(), _b.c_str());
+		}
+	}
+
+	void C_DXG_LISTGRID::sortRows_()
+	{
+		const int nCols = static_cast<int>(m_vCols.size());
+		if (m_nSortCol < 0 || m_nSortCol >= nCols) { return; }
+		const int  col = m_nSortCol;
+		const bool asc = m_bSortAsc;
+		static const std::wstring kEmpty;
+		std::stable_sort(m_vRows.begin(), m_vRows.end(),
+			[col, asc](const std::vector<_DXG_GRID_CELL>& _a, const std::vector<_DXG_GRID_CELL>& _b) -> bool
+			{
+				const std::wstring& sa = (col < static_cast<int>(_a.size())) ? _a[col].sText : kEmpty;
+				const std::wstring& sb = (col < static_cast<int>(_b.size())) ? _b[col].sText : kEmpty;
+				const int cmp = cellCompare_(sa, sb);
+				return asc ? (cmp < 0) : (cmp > 0);
+			});
+	}
 
 	C_DXG_LISTGRID::C_DXG_LISTGRID()
 		: m_hFont(INVALID_FONT)
@@ -160,6 +198,47 @@ namespace dxgui
 			_ctx.PopClipRect();
 		}
 
+		// ── 헤더 상호작용(정렬 클릭 / 컬럼 경계 리사이즈) ──
+		if (m_bHeaderInteract && m_bEnabled && nCols > 0)
+		{
+			const float fMx = _ctx.GetMousePos().x;
+			const float fMy = _ctx.GetMousePos().y;
+			if (m_bResizing)
+			{
+				if (_ctx.IsMouseDown(DXG_MOUSE_LEFT))
+				{
+					float fNw = m_fResizeStartW + (fMx - m_fResizeStartMx);
+					if (fNw < m_fMinColW) { fNw = m_fMinColW; }
+					if (m_nResizeCol >= 0 && m_nResizeCol < nCols) { m_vCols[m_nResizeCol].fWidth = fNw; }
+				}
+				if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT)) { m_bResizing = false; m_nResizeCol = -1; }
+			}
+			else if (fMy >= abs_.y && fMy < abs_.y + fHeaderH && _ctx.IsMouseClicked(DXG_MOUSE_LEFT))
+			{
+				float fCx = abs_.x - fScrollX;
+				int nBorder = -1, nHitCol = -1;
+				for (int c = 0; c < nCols; ++c)
+				{
+					const float fRight = fCx + m_vCols[c].fWidth;
+					if (std::fabs(fMx - fRight) <= 4.0f && fRight <= abs_.x + fBodyW + 4.0f) { nBorder = c; }
+					if (fMx >= fCx && fMx < fRight && fMx < abs_.x + fBodyW) { nHitCol = c; }
+					fCx = fRight;
+				}
+				if (nBorder >= 0)	// 경계 근처 → 리사이즈 시작
+				{
+					m_bResizing = true; m_nResizeCol = nBorder;
+					m_fResizeStartMx = fMx; m_fResizeStartW = m_vCols[nBorder].fWidth;
+				}
+				else if (nHitCol >= 0)	// 컬럼 클릭 → 정렬 토글
+				{
+					if (m_nSortCol == nHitCol) { m_bSortAsc = !m_bSortAsc; }
+					else { m_nSortCol = nHitCol; m_bSortAsc = true; }
+					this->sortRows_();
+					m_nSelRow = -1;
+				}
+			}
+		}
+
 		// ── 헤더(고정, 가로만 -fScrollX 시프트, 본문폭 클립) ──
 		_ctx.FillRect(_DXG_RECT(abs_.x, abs_.y, abs_.w, fHeaderH), m_HeaderBg);
 		_ctx.PushClipRect(_DXG_RECT(abs_.x, abs_.y, fBodyW, fHeaderH));
@@ -176,6 +255,15 @@ namespace dxgui
 						_ctx.DrawLine(_DXG_POINT(fHx, abs_.y), _DXG_POINT(fHx, abs_.y + fHeaderH), m_GridLine, 1.0f);
 					}
 					this->drawCellText_(_ctx, m_vCols[c].sTitle, m_HeaderText, fHx, fCw, abs_.y, fHeaderH, m_vCols[c].align);
+					if (c == m_nSortCol)	// 정렬 표시 ▲/▼ (우측)
+					{
+						const float fAx = fHx + fCw - 14.0f;
+						const float fAy = abs_.y + fHeaderH * 0.5f;
+						_DXG_POINT tri[3];
+						if (m_bSortAsc) { tri[0] = { fAx, fAy + 3.0f }; tri[1] = { fAx + 8.0f, fAy + 3.0f }; tri[2] = { fAx + 4.0f, fAy - 3.0f }; }
+						else            { tri[0] = { fAx, fAy - 3.0f }; tri[1] = { fAx + 8.0f, fAy - 3.0f }; tri[2] = { fAx + 4.0f, fAy + 3.0f }; }
+						_ctx.FillTriangle(tri, m_HeaderText);
+					}
 				}
 				fHx += fCw;
 			}

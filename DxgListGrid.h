@@ -58,6 +58,16 @@ namespace dxgui
 		C_DXG_SCROLLBAR m_ScrollH;	// 임베드 가로 스크롤바(컬럼폭 합 > 본문폭 일 때)
 		std::function<void(int)> m_OnSelect;
 
+		// 헤더 상호작용 — 정렬(클릭) / 컬럼 리사이즈(경계 드래그).
+		int   m_nSortCol{ -1 };		// 정렬 컬럼(-1=없음)
+		bool  m_bSortAsc{ true };
+		int   m_nResizeCol{ -1 };	// 리사이즈 중 컬럼
+		bool  m_bResizing{ false };
+		float m_fResizeStartMx{ 0.0f };
+		float m_fResizeStartW{ 0.0f };
+		float m_fMinColW{ 36.0f };
+		bool  m_bHeaderInteract{ true };	// 정렬/리사이즈 활성
+
 	public:
 		C_DXG_LISTGRID();
 
@@ -66,6 +76,7 @@ namespace dxgui
 		void SetHeaderHeight(float _h)     { m_fHeaderH = _h; }
 		void SetRowAlt(bool _b)            { m_bRowAlt = _b; }
 		void SetGridLines(bool _b)         { m_bGridLines = _b; }
+		void SetHeaderInteract(bool _b)    { m_bHeaderInteract = _b; }	// 정렬/리사이즈 on/off
 		void SetOnSelect(std::function<void(int)> _fn) { m_OnSelect = std::move(_fn); }
 		void SetColors(_DXG_COLOR _hdrBg, _DXG_COLOR _hdrText, _DXG_COLOR _line,
 			_DXG_COLOR _rowBg, _DXG_COLOR _rowAltBg, _DXG_COLOR _selBg, _DXG_COLOR _selText)
@@ -120,6 +131,7 @@ namespace dxgui
 		// 셀/헤더 텍스트를 영역(_colX..+_colW, _top..+_h)에 정렬 클립 렌더.
 		void drawCellText_(IDrawContext& _ctx, const std::wstring& _s, _DXG_COLOR _color,
 			float _colX, float _colW, float _top, float _h, E_DXG_TEXT_ALIGN _align);
+		void sortRows_();	// m_nSortCol/m_bSortAsc 기준 행 정렬(숫자/문자 자동)
 	};
 
 } // namespace dxgui
