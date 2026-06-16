@@ -102,8 +102,16 @@ namespace dxgui
 		virtual bool IsMouseDown(E_DXG_MOUSE_BUTTON _btn) const = 0;
 		virtual bool IsMouseReleased(E_DXG_MOUSE_BUTTON _btn) const = 0;
 
-		// Windows VK_* 코드(DxgKeys.h). true = 이번 프레임에 키 다운.
+		// Windows VK_* 코드(DxgKeys.h). true = 이번 프레임에 키 다운(에지 — 프레임당 클리어).
 		virtual bool IsKeyPressed(int _nVK) const = 0;
+
+		// 키가 현재 눌린 채 유지 중인지(레벨 — KEYUP 까지 유지). Ctrl/Shift 모디파이어 조합용.
+		virtual bool IsKeyDown(int _nVK) const = 0;
+
+		// 클립보드(호스트 OS 서비스). SetClipboardText=복사/잘라내기, GetClipboardText=붙여넣기(없으면 nullptr).
+		// GetClipboardText 반환 포인터는 다음 호출까지만 유효(내부 캐시).
+		virtual void SetClipboardText(const wchar_t* _pText) = 0;
+		virtual const wchar_t* GetClipboardText() = 0;
 
 		// 이번 프레임에 들어온 텍스트 입력(IME 결과 포함). 없으면 nullptr.
 		virtual const wchar_t* PollTextInput() const = 0;

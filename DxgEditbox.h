@@ -78,13 +78,17 @@ namespace dxgui
 		{ m_BorderColor = _c; m_BorderFocusColor = _focus; }
 
 		E_DXG_EDIT_TYPE GetDataType() const { return m_DataType; }
-		bool   IsFocused() const            { return m_bFocused; }
 		bool   IsSelected() const           { return m_uSelAnchor != m_uCaret; }
 		size_t GetBufferSize() const        { return m_sBuffer.size(); }
 
 		// 타입
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_EDITBOX; }
 		const char*       GetTypeName() const override { return "editbox"; }
+
+		// 포커스 순회(Tab) — 편집 위젯. SetFocused 는 진입=버퍼적재+전체선택 / 이탈=커밋.
+		bool AcceptsFocus() const override { return true; }
+		bool IsFocused() const override    { return m_bFocused; }
+		void SetFocused(bool _b) override;
 
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 

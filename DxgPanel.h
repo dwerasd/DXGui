@@ -60,6 +60,16 @@ namespace dxgui
 
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 		void RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin) override;
+
+		// 포커스 순회 — 가시 자식 전부 재귀 수집(추가 순서).
+		void CollectFocusable(std::vector<C_DXG_WIDGET*>& _out) override
+		{
+			if (!m_bVisible) { return; }
+			for (const std::unique_ptr<C_DXG_WIDGET>& pChild_ : m_vChildren)
+			{
+				if (pChild_) { pChild_->CollectFocusable(_out); }
+			}
+		}
 	};
 
 } // namespace dxgui

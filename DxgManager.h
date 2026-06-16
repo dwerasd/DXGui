@@ -5,6 +5,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgKeys.h"
 
 #include <vector>
 #include <memory>
@@ -54,6 +55,30 @@ namespace dxgui
 			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
 			{
 				if (pRoot_ && pRoot_->IsModalActive()) { bModal_ = true; break; }
+			}
+
+			// Tab 포커스 순회 — 모달 아닐 때만. 편집 위젯이 Tab 을 자체 소비하지 않고
+			// 매니저가 소유(다음/이전 포커스 가능 위젯으로 이동). pass1 전에 수행해
+			// 새로 포커스된 위젯이 이번 프레임부터 포커스 상태로 렌더되게 한다.
+			if (!bModal_ && _ctx.IsKeyPressed(DXG_VK_TAB))
+			{
+				std::vector<C_DXG_WIDGET*> vFoc_;
+				for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
+				{
+					if (pRoot_ && pRoot_->IsVisible()) { pRoot_->CollectFocusable(vFoc_); }
+				}
+				if (!vFoc_.empty())
+				{
+					const int n_ = static_cast<int>(vFoc_.size());
+					int nCur_ = -1;
+					for (int i = 0; i < n_; ++i) { if (vFoc_[i]->IsFocused()) { nCur_ = i; break; } }
+					const bool bBack_ = _ctx.IsKeyDown(DXG_VK_SHIFT);	// Shift+Tab = 역방향
+					int nNext_;
+					if (nCur_ < 0) { nNext_ = bBack_ ? (n_ - 1) : 0; }
+					else           { nNext_ = ((nCur_ + (bBack_ ? -1 : 1)) % n_ + n_) % n_; }
+					for (C_DXG_WIDGET* pW_ : vFoc_) { pW_->SetFocused(false); }	// 이전 포커스 커밋
+					vFoc_[nNext_]->SetFocused(true);
+				}
 			}
 
 			_ctx.SetInputCapture(bModal_);

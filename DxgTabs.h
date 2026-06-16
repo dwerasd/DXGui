@@ -79,6 +79,17 @@ namespace dxgui
 
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 		void RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin) override;
+
+		// 포커스 순회 — 활성 페이지만 수집(비활성 탭은 숨김).
+		void CollectFocusable(std::vector<C_DXG_WIDGET*>& _out) override
+		{
+			if (!m_bVisible) { return; }
+			if (m_nActive >= 0 && m_nActive < static_cast<int>(m_vTabs.size())
+				&& m_vTabs[m_nActive].pPage)
+			{
+				m_vTabs[m_nActive].pPage->CollectFocusable(_out);
+			}
+		}
 	};
 
 } // namespace dxgui

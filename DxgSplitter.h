@@ -53,6 +53,14 @@ namespace dxgui
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 		void RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin) override;
 
+		// 포커스 순회 — 양 페이지(A→B) 재귀 수집.
+		void CollectFocusable(std::vector<C_DXG_WIDGET*>& _out) override
+		{
+			if (!m_bVisible) { return; }
+			if (m_pPaneA) { m_pPaneA->CollectFocusable(_out); }
+			if (m_pPaneB) { m_pPaneB->CollectFocusable(_out); }
+		}
+
 	private:
 		void clampRatio_()
 		{

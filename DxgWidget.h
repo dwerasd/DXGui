@@ -7,6 +7,7 @@
 #include "DxgTypes.h"
 
 #include <string>
+#include <vector>
 
 
 namespace dxgui
@@ -94,6 +95,16 @@ namespace dxgui
 		// 모달 활성(메뉴 등 열린 팝업) — 매니저가 true 면 pass1 위젯 입력을 캡처로 억제.
 		// 순수 오버레이 위젯(pass1 입력 없음)만 true 반환할 것. 기본 false.
 		virtual bool IsModalActive() const { return false; }
+
+		// ── 포커스 순회(Tab) ── 기본: 포커스 비수용 leaf. 편집 위젯(Edit/Spinner)이 override.
+		virtual bool AcceptsFocus() const { return false; }
+		virtual bool IsFocused() const { return false; }
+		virtual void SetFocused(bool /*_b*/) {}
+		// 포커스 가능한(가시·활성) 자손을 트리 순서로 수집. 컨테이너가 override 하여 자식 재귀.
+		virtual void CollectFocusable(std::vector<C_DXG_WIDGET*>& _out)
+		{
+			if (m_bVisible && m_bEnabled && this->AcceptsFocus()) { _out.push_back(this); }
+		}
 
 		// 현재 프레임의 절대 사각형. 자식/hit-test 에서 사용.
 		_DXG_RECT AbsRect(_DXG_POINT _origin) const

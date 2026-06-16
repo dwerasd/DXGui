@@ -6,6 +6,8 @@
 namespace dxgui
 {
 
+	inline constexpr int DXG_VK_SHIFT   = 0x10;	// VK_SHIFT
+	inline constexpr int DXG_VK_CONTROL = 0x11;	// VK_CONTROL
 	inline constexpr int DXG_VK_BACK   = 0x08;	// VK_BACK
 	inline constexpr int DXG_VK_TAB    = 0x09;	// VK_TAB
 	inline constexpr int DXG_VK_RETURN = 0x0D;	// VK_RETURN

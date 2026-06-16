@@ -146,10 +146,14 @@ namespace dxgui
 		{
 			if (bHover_ && m_bEnabled)
 			{
+				const bool bWasFocused_ = m_bFocused;
+				const bool bShiftClick_ = _ctx.IsKeyDown(DXG_VK_SHIFT);
 				if (!m_bFocused) { m_bFocused = true; m_sBuffer = DataToString_(); m_nBlinkCnt = 0; }
 				const size_t uHit_ = bYmd_ ? m_sBuffer.size()
 					: hitIdx_(_ctx.GetMousePos().x - fTx0_);
-				m_uCaret = uHit_; m_uSelAnchor = uHit_;	// 캐럿만(선택 해제)
+				m_uCaret = uHit_;
+				// Shift+클릭(이미 포커스) → 앵커 유지(선택 확장). 그 외엔 앵커=캐럿(선택 해제).
+				if (!(bShiftClick_ && bWasFocused_)) { m_uSelAnchor = uHit_; }
 				m_bDragSel = !bYmd_;	// YMD 제외 드래그선택 개시
 			}
 			else if (m_bFocused)	// 박스 밖 클릭 → 커밋 + 포커스 해제
@@ -228,6 +232,53 @@ namespace dxgui
 		// ── 키 입력 처리(포커스 시) ──
 		if (m_bFocused && m_bEnabled)
 		{
+			const bool bCtrl_  = _ctx.IsKeyDown(DXG_VK_CONTROL);
+			const bool bShift_ = _ctx.IsKeyDown(DXG_VK_SHIFT);
+
+			// 클립보드 — Ctrl+C(복사)/X(잘라내기)/V(붙여넣기). Ctrl 조합 문자는 WM_CHAR(<0x20)
+			// 가 호스트에서 걸러지므로 텍스트입력 경로와 충돌 없음.
+			if (bCtrl_ && _ctx.IsKeyPressed('C') && bHasSel_)
+			{
+				_ctx.SetClipboardText(m_sBuffer.substr(uSelL_, uSelR_ - uSelL_).c_str());
+			}
+			if (bCtrl_ && _ctx.IsKeyPressed('X') && bHasSel_)
+			{
+				_ctx.SetClipboardText(m_sBuffer.substr(uSelL_, uSelR_ - uSelL_).c_str());
+				m_sBuffer.erase(uSelL_, uSelR_ - uSelL_);
+				m_uCaret = uSelL_; m_uSelAnchor = uSelL_;
+			}
+			if (bCtrl_ && _ctx.IsKeyPressed('V'))
+			{
+				const wchar_t* pClip_ = _ctx.GetClipboardText();
+				if (pClip_ != nullptr)
+				{
+					if (uSelL_ != uSelR_)	// 선택범위 교체(붙여넣기 직전 상태 기준)
+					{
+						m_sBuffer.erase(uSelL_, uSelR_ - uSelL_);
+						m_uCaret = uSelL_; m_uSelAnchor = uSelL_;
+					}
+					// 개행/탭 제외 + 타입 필터로 캐럿 위치 삽입.
+					for (const wchar_t c_ : std::wstring(pClip_))
+					{
+						if (c_ == L'\r' || c_ == L'\n' || c_ == L'\t') { continue; }
+						bool bOk_;
+						if (bYmd_) { bOk_ = false; }	// YMD 는 붙여넣기 미지원(마스킹)
+						else if (m_DataType == DXG_EDIT_TEXT) { bOk_ = (m_sBuffer.size() < m_uTextMax); }
+						else
+						{
+							const bool bDigit_ = (c_ >= L'0' && c_ <= L'9');
+							const bool bSign_  = (c_ == L'-' && m_uCaret == 0
+								&& m_sBuffer.find(L'-') == std::wstring::npos);
+							const bool bDot_   = (c_ == L'.' && m_DataType == DXG_EDIT_FLOAT
+								&& m_sBuffer.find(L'.') == std::wstring::npos);
+							bOk_ = bDigit_ || bSign_ || bDot_;
+						}
+						if (bOk_) { m_sBuffer.insert(m_uCaret, 1, c_); ++m_uCaret; }
+					}
+					m_uSelAnchor = m_uCaret;
+				}
+			}
+
 			// 백스페이스.
 			if (_ctx.IsKeyPressed(DXG_VK_BACK))
 			{
@@ -311,20 +362,37 @@ namespace dxgui
 					m_uSelAnchor = m_uCaret;
 				}
 			}
-			// 좌우 화살표 / Home / End — 캐럿 이동(선택 해제). YMD 제외.
+			// 좌우 화살표 / Home / End — 캐럿 이동. Shift 동반 시 앵커 유지(선택 확장). YMD 제외.
 			if (!bYmd_)
 			{
-				if (_ctx.IsKeyPressed(DXG_VK_LEFT)  && m_uCaret > 0)               { --m_uCaret; m_uSelAnchor = m_uCaret; }
-				if (_ctx.IsKeyPressed(DXG_VK_RIGHT) && m_uCaret < m_sBuffer.size()) { ++m_uCaret; m_uSelAnchor = m_uCaret; }
-				if (_ctx.IsKeyPressed(DXG_VK_HOME))  { m_uCaret = 0; m_uSelAnchor = 0; }
-				if (_ctx.IsKeyPressed(DXG_VK_END))   { m_uCaret = m_sBuffer.size(); m_uSelAnchor = m_uCaret; }
+				if (_ctx.IsKeyPressed(DXG_VK_LEFT)  && m_uCaret > 0)               { --m_uCaret; if (!bShift_) { m_uSelAnchor = m_uCaret; } }
+				if (_ctx.IsKeyPressed(DXG_VK_RIGHT) && m_uCaret < m_sBuffer.size()) { ++m_uCaret; if (!bShift_) { m_uSelAnchor = m_uCaret; } }
+				if (_ctx.IsKeyPressed(DXG_VK_HOME))  { m_uCaret = 0; if (!bShift_) { m_uSelAnchor = 0; } }
+				if (_ctx.IsKeyPressed(DXG_VK_END))   { m_uCaret = m_sBuffer.size(); if (!bShift_) { m_uSelAnchor = m_uCaret; } }
 			}
-			// 엔터/Tab → 커밋 + 포커스 해제.
-			if (_ctx.IsKeyPressed(DXG_VK_RETURN) || _ctx.IsKeyPressed(DXG_VK_TAB))
+			// 엔터 → 커밋 + 포커스 해제. (Tab 은 매니저가 포커스 순회로 소유)
+			if (_ctx.IsKeyPressed(DXG_VK_RETURN))
 			{
 				StringToData_();
 				m_bFocused = false;
 			}
+		}
+	}
+
+	// 포커스 순회(Tab) 진입/이탈 — 매니저가 호출. 진입=버퍼 적재+전체선택, 이탈=커밋.
+	void C_DXG_EDITBOX::SetFocused(bool _b)
+	{
+		if (_b)
+		{
+			if (!m_bFocused) { m_bFocused = true; m_sBuffer = DataToString_(); m_nBlinkCnt = 0; }
+			m_uSelAnchor = 0; m_uCaret = m_sBuffer.size();	// Tab 진입 = 전체선택(관례)
+			m_bDragSel = false;
+		}
+		else if (m_bFocused)
+		{
+			StringToData_();
+			m_bFocused = false;
+			m_bDragSel = false;
 		}
 	}
 

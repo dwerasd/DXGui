@@ -76,6 +76,11 @@ namespace dxgui
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_SPINNER; }
 		const char*       GetTypeName() const override { return "spinner"; }
 
+		// 포커스 순회(Tab) — 진입=값 적재+전체선택 / 이탈=커밋.
+		bool AcceptsFocus() const override { return true; }
+		bool IsFocused() const override    { return m_bFocused; }
+		void SetFocused(bool _b) override;
+
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 	};
 

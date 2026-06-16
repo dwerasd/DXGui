@@ -20,6 +20,25 @@ namespace dxgui
 		this->setValue_(static_cast<int>(c));
 	}
 
+	// 포커스 순회(Tab) 진입/이탈 — 매니저가 호출. 진입=값 적재+전체선택, 이탈=커밋.
+	void C_DXG_SPINNER::SetFocused(bool _b)
+	{
+		if (_b)
+		{
+			if (!m_bFocused && m_pData != nullptr)
+			{
+				wchar_t b[32]{}; ::swprintf_s(b, L"%d", *m_pData);
+				m_sBuf = b; m_bFocused = true; m_nBlink = 0;
+			}
+			m_uSelAnchor = 0; m_uCaret = m_sBuf.size();	// Tab 진입 = 전체선택
+			m_bDragSel = false;
+		}
+		else if (m_bFocused)
+		{
+			this->commitBuf_(); m_bFocused = false; m_bDragSel = false;
+		}
+	}
+
 	void C_DXG_SPINNER::Render(IDrawContext& _ctx, _DXG_POINT _origin)
 	{
 		if (!m_bVisible) { return; }
@@ -77,13 +96,16 @@ namespace dxgui
 			else if (bHovDn) { this->step_(-1); }
 			else if (_ctx.IsMouseHovered(textR_))
 			{
+				const bool bWasFocused_ = m_bFocused;
+				const bool bShiftClick_ = _ctx.IsKeyDown(DXG_VK_SHIFT);
 				if (!m_bFocused && m_pData != nullptr)
 				{
 					wchar_t b[32]{}; ::swprintf_s(b, L"%d", *m_pData);
 					m_sBuf = b; m_bFocused = true; m_nBlink = 0;
 				}
 				const size_t uHit_ = hitIdx_(_ctx.GetMousePos().x - fTx0);
-				m_uCaret = uHit_; m_uSelAnchor = uHit_;	// 캐럿만(선택 해제)
+				m_uCaret = uHit_;
+				if (!(bShiftClick_ && bWasFocused_)) { m_uSelAnchor = uHit_; }	// Shift+클릭 → 앵커 유지(확장)
 				m_bDragSel = true;
 			}
 			else if (m_bFocused) { this->commitBuf_(); m_bFocused = false; m_bDragSel = false; }	// 외부 클릭 커밋
@@ -133,6 +155,35 @@ namespace dxgui
 		// ── 키 입력(포커스 시) ──
 		if (m_bFocused && m_bEnabled)
 		{
+			const bool bCtrl_  = _ctx.IsKeyDown(DXG_VK_CONTROL);
+			const bool bShift_ = _ctx.IsKeyDown(DXG_VK_SHIFT);
+
+			// 클립보드 — Ctrl+C/X/V(숫자/부호만 필터).
+			if (bCtrl_ && _ctx.IsKeyPressed('C') && bHasSel_)
+			{
+				_ctx.SetClipboardText(m_sBuf.substr(uSelL_, uSelR_ - uSelL_).c_str());
+			}
+			if (bCtrl_ && _ctx.IsKeyPressed('X') && bHasSel_)
+			{
+				_ctx.SetClipboardText(m_sBuf.substr(uSelL_, uSelR_ - uSelL_).c_str());
+				m_sBuf.erase(uSelL_, uSelR_ - uSelL_); m_uCaret = uSelL_; m_uSelAnchor = uSelL_;
+			}
+			if (bCtrl_ && _ctx.IsKeyPressed('V'))
+			{
+				const wchar_t* pClip_ = _ctx.GetClipboardText();
+				if (pClip_ != nullptr)
+				{
+					if (uSelL_ != uSelR_) { m_sBuf.erase(uSelL_, uSelR_ - uSelL_); m_uCaret = uSelL_; m_uSelAnchor = uSelL_; }
+					for (const wchar_t c : std::wstring(pClip_))
+					{
+						const bool bDigit_ = (c >= L'0' && c <= L'9');
+						const bool bSign_  = (c == L'-' && m_uCaret == 0 && m_sBuf.find(L'-') == std::wstring::npos);
+						if (bDigit_ || bSign_) { m_sBuf.insert(m_uCaret, 1, c); ++m_uCaret; }
+					}
+					m_uSelAnchor = m_uCaret;
+				}
+			}
+
 			if (_ctx.IsKeyPressed(DXG_VK_BACK))
 			{
 				if (bHasSel_) { m_sBuf.erase(uSelL_, uSelR_ - uSelL_); m_uCaret = uSelL_; m_uSelAnchor = uSelL_; }
@@ -156,11 +207,11 @@ namespace dxgui
 				}
 				m_uSelAnchor = m_uCaret;
 			}
-			if (_ctx.IsKeyPressed(DXG_VK_LEFT)  && m_uCaret > 0)            { --m_uCaret; m_uSelAnchor = m_uCaret; }
-			if (_ctx.IsKeyPressed(DXG_VK_RIGHT) && m_uCaret < m_sBuf.size()) { ++m_uCaret; m_uSelAnchor = m_uCaret; }
-			if (_ctx.IsKeyPressed(DXG_VK_HOME)) { m_uCaret = 0; m_uSelAnchor = 0; }
-			if (_ctx.IsKeyPressed(DXG_VK_END))  { m_uCaret = m_sBuf.size(); m_uSelAnchor = m_uCaret; }
-			if (_ctx.IsKeyPressed(DXG_VK_RETURN) || _ctx.IsKeyPressed(DXG_VK_TAB))
+			if (_ctx.IsKeyPressed(DXG_VK_LEFT)  && m_uCaret > 0)            { --m_uCaret; if (!bShift_) { m_uSelAnchor = m_uCaret; } }
+			if (_ctx.IsKeyPressed(DXG_VK_RIGHT) && m_uCaret < m_sBuf.size()) { ++m_uCaret; if (!bShift_) { m_uSelAnchor = m_uCaret; } }
+			if (_ctx.IsKeyPressed(DXG_VK_HOME)) { m_uCaret = 0; if (!bShift_) { m_uSelAnchor = 0; } }
+			if (_ctx.IsKeyPressed(DXG_VK_END))  { m_uCaret = m_sBuf.size(); if (!bShift_) { m_uSelAnchor = m_uCaret; } }
+			if (_ctx.IsKeyPressed(DXG_VK_RETURN))	// Tab 은 매니저가 포커스 순회로 소유
 			{
 				this->commitBuf_(); m_bFocused = false;
 			}
