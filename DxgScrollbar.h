@@ -10,13 +10,16 @@
 namespace dxgui
 {
 
+	enum E_DXG_ORIENT : uint8_t { DXG_ORIENT_VERT = 0, DXG_ORIENT_HORIZ = 1 };
+
 	class C_DXG_SCROLLBAR : public C_DXG_WIDGET
 	{
 	private:
-		float m_fContentH;		// 전체 콘텐츠 높이(px)
-		float m_fViewportH;		// 보이는 영역 높이(px)
+		E_DXG_ORIENT m_eOrient;	// 세로(기본)/가로
+		float m_fContentH;		// 전체 콘텐츠 길이(축 방향, px)
+		float m_fViewportH;		// 보이는 영역 길이(축 방향, px)
 		float m_fValue;			// 스크롤 오프셋(px, 0..MaxScroll)
-		float m_fMinThumb;		// thumb 최소 높이(px)
+		float m_fMinThumb;		// thumb 최소 길이(px)
 
 		_DXG_COLOR m_TrackColor;
 		_DXG_COLOR m_ThumbColor;
@@ -27,7 +30,8 @@ namespace dxgui
 
 	public:
 		C_DXG_SCROLLBAR()
-			: m_fContentH(0.0f)
+			: m_eOrient(DXG_ORIENT_VERT)
+			, m_fContentH(0.0f)
 			, m_fViewportH(0.0f)
 			, m_fValue(0.0f)
 			, m_fMinThumb(20.0f)
@@ -42,6 +46,8 @@ namespace dxgui
 		void SetColors(_DXG_COLOR _track, _DXG_COLOR _thumb, _DXG_COLOR _thumbHover)
 		{ m_TrackColor = _track; m_ThumbColor = _thumb; m_ThumbHoverColor = _thumbHover; }
 		void SetMinThumb(float _f) { m_fMinThumb = _f; }
+		void SetOrient(E_DXG_ORIENT _e) { m_eOrient = _e; }
+		E_DXG_ORIENT Orient() const { return m_eOrient; }
 
 		// 콘텐츠/뷰포트 갱신(소유자가 매 프레임). 값은 [0,MaxScroll] 로 클램프.
 		void SetMetrics(float _fContentH, float _fViewportH)

@@ -55,6 +55,7 @@ namespace dxgui
 		_DXG_COLOR m_HeaderBg, m_HeaderText, m_GridLine, m_RowBg, m_RowAltBg, m_SelBg, m_SelText;
 
 		C_DXG_SCROLLBAR m_ScrollV;	// 임베드 세로 스크롤바(필요 시만 표시)
+		C_DXG_SCROLLBAR m_ScrollH;	// 임베드 가로 스크롤바(컬럼폭 합 > 본문폭 일 때)
 		std::function<void(int)> m_OnSelect;
 
 	public:

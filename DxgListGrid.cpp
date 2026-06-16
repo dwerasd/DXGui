@@ -24,6 +24,7 @@ namespace dxgui
 		, m_SelBg(0xFFD6E4FFu)
 		, m_SelText(0xFF1A2638u)
 	{
+		m_ScrollH.SetOrient(DXG_ORIENT_HORIZ);
 	}
 
 	void C_DXG_LISTGRID::drawCellText_(IDrawContext& _ctx, const std::wstring& _s, _DXG_COLOR _color,
@@ -53,28 +54,40 @@ namespace dxgui
 		const float fBodyTop = abs_.y + fHeaderH;
 		const float fBodyH   = abs_.h - fHeaderH;
 		const float fContentH = static_cast<float>(nRows) * m_fRowH;
+		const float fTotalColW = this->totalColW_();
 
-		// 스크롤바 필요 판정 + 본문 폭 산출.
-		m_ScrollV.SetMetrics(fContentH, (fBodyH > 0.0f) ? fBodyH : 0.0f);
-		const bool  bScroll = m_ScrollV.Needed() && fBodyH > 0.0f;
-		const float fSbW    = bScroll ? m_fScrollbarW : 0.0f;
-		const float fBodyW  = abs_.w - fSbW;
-		const _DXG_RECT bodyAbs_(abs_.x, fBodyTop, fBodyW, (fBodyH > 0.0f) ? fBodyH : 0.0f);
+		// 스크롤 필요 판정(가로/세로 상호 의존 — 2회 수렴) + 본문 영역 산출.
+		bool bV = fContentH > fBodyH + 0.5f;
+		bool bH = fTotalColW > (abs_.w - (bV ? m_fScrollbarW : 0.0f)) + 0.5f;
+		bV = fContentH > (fBodyH - (bH ? m_fScrollbarW : 0.0f)) + 0.5f;
+		bH = fTotalColW > (abs_.w - (bV ? m_fScrollbarW : 0.0f)) + 0.5f;
+		const float fBodyW    = abs_.w - (bV ? m_fScrollbarW : 0.0f);
+		const float fBodyVisH = fBodyH - (bH ? m_fScrollbarW : 0.0f);
+		const _DXG_RECT bodyAbs_(abs_.x, fBodyTop, fBodyW, (fBodyVisH > 0.0f) ? fBodyVisH : 0.0f);
 
-		// 휠(본문 위) → 스크롤.
+		m_ScrollV.SetMetrics(fContentH, (fBodyVisH > 0.0f) ? fBodyVisH : 0.0f);
+		m_ScrollH.SetMetrics(fTotalColW, fBodyW);
+
+		// 휠(본문 위) → 세로 스크롤.
 		const float fWheel = _ctx.GetWheelDelta();
-		if (bScroll && fWheel != 0.0f && _ctx.IsMouseHovered(bodyAbs_))
+		if (bV && fWheel != 0.0f && _ctx.IsMouseHovered(bodyAbs_))
 		{
 			m_ScrollV.ScrollBy(-fWheel * m_fRowH * 3.0f);
 		}
 
-		// 스크롤바(드래그 처리) — 우측 스트립. 값 확정 후 본문 레이아웃.
-		if (bScroll)
+		// 스크롤바 드래그 처리(우측=세로 / 하단=가로). 값 확정 후 본문 레이아웃.
+		if (bV)
 		{
-			m_ScrollV.SetRect(_DXG_RECT(m_Rect.x + fBodyW, m_Rect.y + fHeaderH, fSbW, fBodyH));
+			m_ScrollV.SetRect(_DXG_RECT(m_Rect.x + fBodyW, m_Rect.y + fHeaderH, m_fScrollbarW, fBodyVisH));
 			m_ScrollV.Render(_ctx, _origin);
 		}
+		if (bH)
+		{
+			m_ScrollH.SetRect(_DXG_RECT(m_Rect.x, m_Rect.y + fHeaderH + fBodyVisH, fBodyW, m_fScrollbarW));
+			m_ScrollH.Render(_ctx, _origin);
+		}
 		const float fScrollY = m_ScrollV.GetValue();
+		const float fScrollX = m_ScrollH.GetValue();
 
 		// 행 클릭 선택(본문 영역, 스크롤바 제외).
 		if (m_bEnabled && _ctx.IsMouseClicked(DXG_MOUSE_LEFT) && _ctx.IsMouseHovered(bodyAbs_))
@@ -88,12 +101,12 @@ namespace dxgui
 			}
 		}
 
-		// ── 본문(행) — 클립 후 가시 행만 ──
-		if (fBodyH > 0.0f)
+		// ── 본문(행) — 클립 후 가시 행만. 가로 스크롤 = 컬럼 x 를 -fScrollX 시프트 ──
+		if (fBodyVisH > 0.0f)
 		{
 			_ctx.PushClipRect(bodyAbs_);
 			int firstR = (m_fRowH > 0.0f) ? static_cast<int>(::floorf(fScrollY / m_fRowH)) : 0;
-			int lastR  = (m_fRowH > 0.0f) ? static_cast<int>(::ceilf((fScrollY + fBodyH) / m_fRowH)) : 0;
+			int lastR  = (m_fRowH > 0.0f) ? static_cast<int>(::ceilf((fScrollY + fBodyVisH) / m_fRowH)) : 0;
 			if (firstR < 0) { firstR = 0; }
 			for (int r = firstR; r < nRows && r <= lastR; ++r)
 			{
@@ -105,20 +118,23 @@ namespace dxgui
 				_ctx.FillRect(_DXG_RECT(abs_.x, fRowY, fBodyW, m_fRowH), base);
 
 				const std::vector<_DXG_GRID_CELL>& row = m_vRows[r];
-				float fCx = abs_.x;
+				float fCx = abs_.x - fScrollX;
 				for (int c = 0; c < nCols; ++c)
 				{
 					const float fCw = m_vCols[c].fWidth;
-					if (fCx >= abs_.x + fBodyW) { break; }	// 우측 클립
-					const _DXG_GRID_CELL* pCell = (c < static_cast<int>(row.size())) ? &row[c] : nullptr;
-					if (pCell != nullptr && pCell->bgColor.A() > 0 && r != m_nSelRow)
+					if (fCx >= abs_.x + fBodyW) { break; }		// 우측 밖
+					if (fCx + fCw > abs_.x)						// 좌측 밖 컬럼 skip
 					{
-						_ctx.FillRect(_DXG_RECT(fCx, fRowY, fCw, m_fRowH), pCell->bgColor);
-					}
-					if (pCell != nullptr)
-					{
-						const _DXG_COLOR tcol = (r == m_nSelRow) ? m_SelText : pCell->textColor;
-						this->drawCellText_(_ctx, pCell->sText, tcol, fCx, fCw, fRowY, m_fRowH, m_vCols[c].align);
+						const _DXG_GRID_CELL* pCell = (c < static_cast<int>(row.size())) ? &row[c] : nullptr;
+						if (pCell != nullptr && pCell->bgColor.A() > 0 && r != m_nSelRow)
+						{
+							_ctx.FillRect(_DXG_RECT(fCx, fRowY, fCw, m_fRowH), pCell->bgColor);
+						}
+						if (pCell != nullptr)
+						{
+							const _DXG_COLOR tcol = (r == m_nSelRow) ? m_SelText : pCell->textColor;
+							this->drawCellText_(_ctx, pCell->sText, tcol, fCx, fCw, fRowY, m_fRowH, m_vCols[c].align);
+						}
 					}
 					fCx += fCw;
 				}
@@ -131,22 +147,27 @@ namespace dxgui
 			_ctx.PopClipRect();
 		}
 
-		// ── 헤더(고정) ──
+		// ── 헤더(고정, 가로만 -fScrollX 시프트, 본문폭 클립) ──
 		_ctx.FillRect(_DXG_RECT(abs_.x, abs_.y, abs_.w, fHeaderH), m_HeaderBg);
+		_ctx.PushClipRect(_DXG_RECT(abs_.x, abs_.y, fBodyW, fHeaderH));
 		{
-			float fHx = abs_.x;
+			float fHx = abs_.x - fScrollX;
 			for (int c = 0; c < nCols; ++c)
 			{
 				const float fCw = m_vCols[c].fWidth;
-				if (fHx >= abs_.x + abs_.w) { break; }
-				if (m_bGridLines && c > 0)
+				if (fHx >= abs_.x + fBodyW) { break; }
+				if (fHx + fCw > abs_.x)
 				{
-					_ctx.DrawLine(_DXG_POINT(fHx, abs_.y), _DXG_POINT(fHx, abs_.y + fHeaderH), m_GridLine, 1.0f);
+					if (m_bGridLines && c > 0)
+					{
+						_ctx.DrawLine(_DXG_POINT(fHx, abs_.y), _DXG_POINT(fHx, abs_.y + fHeaderH), m_GridLine, 1.0f);
+					}
+					this->drawCellText_(_ctx, m_vCols[c].sTitle, m_HeaderText, fHx, fCw, abs_.y, fHeaderH, m_vCols[c].align);
 				}
-				this->drawCellText_(_ctx, m_vCols[c].sTitle, m_HeaderText, fHx, fCw, abs_.y, fHeaderH, m_vCols[c].align);
 				fHx += fCw;
 			}
 		}
+		_ctx.PopClipRect();
 		// 헤더 하단선 + 외곽 테두리.
 		_ctx.DrawLine(_DXG_POINT(abs_.x, fBodyTop), _DXG_POINT(abs_.x + abs_.w, fBodyTop), m_GridLine, 1.0f);
 		_ctx.DrawRectOutline(abs_, m_GridLine, 1.0f);
