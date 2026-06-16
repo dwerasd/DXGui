@@ -17,20 +17,32 @@ namespace dxgui
 		int*       m_pData;
 		int        m_nMin, m_nMax, m_nStep;
 		FontHandle m_hFont;
-		_DXG_COLOR m_BgColor, m_TextColor, m_BorderColor, m_BtnBg, m_BtnHover, m_ArrowColor;
+		_DXG_COLOR m_BgColor, m_TextColor, m_BorderColor, m_BorderFocusColor, m_BtnBg, m_BtnHover, m_ArrowColor;
 		std::function<void(int)> m_OnChange;
+
+		// 텍스트 편집(타이핑) 상태 — 스핀박스(타이핑 + ▲▼ 둘 다).
+		bool         m_bFocused;
+		bool         m_bSelected;	// 클릭 시 전체선택(첫 입력이 교체)
+		std::wstring m_sBuf;
+		int          m_nBlink;
+
+		void setValue_(int _v)	// 클램프 후 적용 + onChange
+		{
+			if (m_pData == nullptr) { return; }
+			if (_v < m_nMin) { _v = m_nMin; }
+			if (_v > m_nMax) { _v = m_nMax; }
+			if (_v != *m_pData) { *m_pData = _v; if (m_OnChange) { m_OnChange(_v); } }
+		}
+		void commitBuf_();	// 버퍼 → 값
 
 		void step_(int _nDir)
 		{
 			if (m_pData == nullptr) { return; }
+			if (m_bFocused) { this->commitBuf_(); }	// 타이핑 중이면 먼저 반영
 			long long v = static_cast<long long>(*m_pData) + static_cast<long long>(_nDir) * m_nStep;
 			if (v < m_nMin) { v = m_nMin; }
 			if (v > m_nMax) { v = m_nMax; }
-			if (static_cast<int>(v) != *m_pData)
-			{
-				*m_pData = static_cast<int>(v);
-				if (m_OnChange) { m_OnChange(*m_pData); }
-			}
+			this->setValue_(static_cast<int>(v));
 		}
 
 	public:
@@ -41,9 +53,13 @@ namespace dxgui
 			, m_BgColor(0xFFFFFFFFu)
 			, m_TextColor(0xFF222838u)
 			, m_BorderColor(0xFF8896A8u)
+			, m_BorderFocusColor(0xFF236EE0u)
 			, m_BtnBg(0xFFEDF1F6u)
 			, m_BtnHover(0xFFD6E4FFu)
 			, m_ArrowColor(0xFF5A6678u)
+			, m_bFocused(false)
+			, m_bSelected(false)
+			, m_nBlink(0)
 		{
 		}
 

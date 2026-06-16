@@ -120,10 +120,11 @@ namespace dxgui
 				{
 					m_bFocused = true;
 					m_sBuffer  = DataToString_();
-					m_uCaret   = m_sBuffer.size();   // caret = 끝.
-					m_bSelected = false;
+					m_uCaret   = m_sBuffer.size();
+					m_bSelected = true;	// 클릭 시 전체선택(첫 입력이 교체)
 					m_nBlinkCnt = 0;
 				}
+				else { m_bSelected = true; }	// 재클릭 → 다시 전체선택
 			}
 			else if (m_bFocused)
 			{
@@ -148,6 +149,10 @@ namespace dxgui
 		{
 			const _DXG_SIZE szText_ = _ctx.MeasureText(m_hFont, sShow_.c_str(), m_fFontScale);
 			fTextW_ = szText_.w;
+			if (m_bFocused && m_bSelected)	// 전체선택 하이라이트(텍스트 뒤)
+			{
+				_ctx.FillRect(_DXG_RECT(abs_.x + 4.0f, fTextY_, fTextW_, fFontH_), _DXG_COLOR(0xFFB5D2FFu));
+			}
 			_ctx.DrawText(m_hFont,
 				_DXG_POINT(abs_.x + 4.0f, fTextY_),
 				sShow_.c_str(), m_TextColor, m_fFontScale);
@@ -186,7 +191,11 @@ namespace dxgui
 			// 백스페이스.
 			if (_ctx.IsKeyPressed(DXG_VK_BACK) && !m_sBuffer.empty())
 			{
-				if (m_DataType == DXG_EDIT_YMD)
+				if (m_bSelected)	// 전체선택 상태 → 통째 삭제
+				{
+					m_sBuffer.clear(); m_uCaret = 0; m_bSelected = false;
+				}
+				else if (m_DataType == DXG_EDIT_YMD)
 				{
 					// 숫자 한 자리 후퇴. dash 가 마지막이면 dash + 그 앞 숫자 함께 제거.
 					m_sBuffer.pop_back();
@@ -207,6 +216,7 @@ namespace dxgui
 			const wchar_t* pTxt_ = _ctx.PollTextInput();
 			if (pTxt_ != nullptr)
 			{
+				if (m_bSelected) { m_sBuffer.clear(); m_uCaret = 0; m_bSelected = false; }	// 전체선택 → 첫 입력이 교체
 				const std::wstring sNew_(pTxt_);
 				if (m_DataType == DXG_EDIT_TEXT)
 				{
