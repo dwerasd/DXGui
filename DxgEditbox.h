@@ -9,6 +9,7 @@
 #include "DxgDrawContext.h"
 
 #include <string>
+#include <functional>
 
 
 namespace dxgui
@@ -43,6 +44,7 @@ namespace dxgui
 		size_t       m_uSelAnchor;        // 선택 앵커. ==m_uCaret 이면 선택 없음(캐럿만).
 		bool         m_bDragSel;          // 좌버튼 드래그로 범위선택 중
 		int          m_nBlinkCnt;         // caret blink 카운터 (frame 단위, 60 = ~1초 주기)
+		std::function<void()> m_OnEnter;  // 엔터 커밋 콜백(없으면 무시)
 
 	public:
 		C_DXG_EDITBOX()
@@ -76,6 +78,8 @@ namespace dxgui
 		void SetBgColor(_DXG_COLOR _c)     { m_BgColor = _c; }
 		void SetBorderColor(_DXG_COLOR _c, _DXG_COLOR _focus)
 		{ m_BorderColor = _c; m_BorderFocusColor = _focus; }
+		// 엔터 커밋 시 콜백(StringToData_ 이후 호출) — 종목적용/조회 등 "확정" 동작 라우팅.
+		void SetOnEnter(std::function<void()> _fn) { m_OnEnter = std::move(_fn); }
 
 		E_DXG_EDIT_TYPE GetDataType() const { return m_DataType; }
 		bool   IsSelected() const           { return m_uSelAnchor != m_uCaret; }

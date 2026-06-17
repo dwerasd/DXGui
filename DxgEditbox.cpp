@@ -375,6 +375,7 @@ namespace dxgui
 			{
 				StringToData_();
 				m_bFocused = false;
+				if (m_OnEnter) { m_OnEnter(); }	// 커밋 후 확정 콜백(종목적용 등)
 			}
 		}
 	}
