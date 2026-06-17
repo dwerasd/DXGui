@@ -58,6 +58,26 @@ namespace dxgui
 			}
 		}
 
+		// 디자인모드 — 키 부여된 최상위(루트) 위젯 수집. 루트는 원점(0,0) 렌더라 GetRect()=절대좌표.
+		void CollectKeyedRoots(std::vector<C_DXG_WIDGET*>& _out) const
+		{
+			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
+			{
+				if (pRoot_ && pRoot_->IsVisible() && !pRoot_->GetKey().empty()) { _out.push_back(pRoot_.get()); }
+			}
+		}
+		// 점(_x,_y) 아래 최상위 키 위젯(나중 추가=위 → 마지막 매치 우선).
+		C_DXG_WIDGET* HitTestKeyedRoot(float _x, float _y) const
+		{
+			C_DXG_WIDGET* pHit_ = nullptr;
+			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
+			{
+				if (pRoot_ && pRoot_->IsVisible() && !pRoot_->GetKey().empty()
+					&& pRoot_->GetRect().Contains(_x, _y)) { pHit_ = pRoot_.get(); }
+			}
+			return pHit_;
+		}
+
 		// 전 루트를 화면 원점(0,0) 기준으로 렌더(가시 위젯만).
 		// 2패스: (1) 일반 Render → (2) RenderOverlay(콤보 드롭다운 등 최상위 요소).
 		void Render(IDrawContext& _ctx)
