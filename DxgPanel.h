@@ -70,6 +70,24 @@ namespace dxgui
 				if (pChild_) { pChild_->CollectFocusable(_out); }
 			}
 		}
+
+		// 키 위젯 재귀 — 자식 우선(나중 추가=위, 역순=deepest), 미적중 시 패널 자신.
+		C_DXG_WIDGET* HitTestKeyed(float _x, float _y, _DXG_POINT _origin) override
+		{
+			if (!m_bVisible) { return nullptr; }
+			const _DXG_POINT co_(_origin.x + m_Rect.x, _origin.y + m_Rect.y);	// 자식 원점 = 패널 절대 좌상단
+			for (auto it_ = m_vChildren.rbegin(); it_ != m_vChildren.rend(); ++it_)
+			{
+				if (*it_) { C_DXG_WIDGET* h_ = (*it_)->HitTestKeyed(_x, _y, co_); if (h_ != nullptr) { return h_; } }
+			}
+			if (!m_sKey.empty() && this->AbsRect(_origin).Contains(_x, _y)) { return this; }
+			return nullptr;
+		}
+		void CollectKeyed(std::vector<C_DXG_WIDGET*>& _out) override
+		{
+			if (!m_sKey.empty()) { _out.push_back(this); }
+			for (const std::unique_ptr<C_DXG_WIDGET>& pChild_ : m_vChildren) { if (pChild_) { pChild_->CollectKeyed(_out); } }
+		}
 	};
 
 } // namespace dxgui

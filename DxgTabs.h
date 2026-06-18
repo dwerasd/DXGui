@@ -90,6 +90,21 @@ namespace dxgui
 				m_vTabs[m_nActive].pPage->CollectFocusable(_out);
 			}
 		}
+
+		// 키 위젯 재귀 — 히트는 활성 페이지만(콘텐츠 원점=스트립 아래, Render 일치). 수집은 전 페이지(복원).
+		C_DXG_WIDGET* HitTestKeyed(float _x, float _y, _DXG_POINT _origin) override
+		{
+			if (!m_bVisible || m_nActive < 0 || m_nActive >= static_cast<int>(m_vTabs.size())) { return nullptr; }
+			const std::unique_ptr<C_DXG_WIDGET>& pPage_ = m_vTabs[m_nActive].pPage;
+			if (!pPage_) { return nullptr; }
+			const _DXG_POINT po_(_origin.x + m_Rect.x, _origin.y + m_Rect.y + m_fTabH);	// 콘텐츠 좌상단
+			return pPage_->HitTestKeyed(_x, _y, po_);
+		}
+		void CollectKeyed(std::vector<C_DXG_WIDGET*>& _out) override
+		{
+			if (!m_sKey.empty()) { _out.push_back(this); }
+			for (const _TAB& t_ : m_vTabs) { if (t_.pPage) { t_.pPage->CollectKeyed(_out); } }
+		}
 	};
 
 } // namespace dxgui

@@ -113,6 +113,18 @@ namespace dxgui
 			if (m_bVisible && m_bEnabled && this->AcceptsFocus()) { _out.push_back(this); }
 		}
 
+		// ── 디자인/설정 — 키 부여 위젯 재귀 탐색(컨테이너가 자식까지 내려감). ──
+		// HitTestKeyed: (_x,_y) 아래 가장 깊은 가시 키 위젯. CollectKeyed: 전 키 위젯(비활성 탭 포함 — 복원용).
+		virtual C_DXG_WIDGET* HitTestKeyed(float _x, float _y, _DXG_POINT _origin)
+		{
+			if (!m_bVisible || m_sKey.empty()) { return nullptr; }
+			return this->AbsRect(_origin).Contains(_x, _y) ? this : nullptr;
+		}
+		virtual void CollectKeyed(std::vector<C_DXG_WIDGET*>& _out)
+		{
+			if (!m_sKey.empty()) { _out.push_back(this); }
+		}
+
 		// 현재 프레임의 절대 사각형. 자식/hit-test 에서 사용.
 		_DXG_RECT AbsRect(_DXG_POINT _origin) const
 		{

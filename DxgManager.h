@@ -78,6 +78,23 @@ namespace dxgui
 			return pHit_;
 		}
 
+		// 재귀 — 컨테이너(패널/탭) 내부까지 내려가 (_x,_y) 아래 가장 깊은 키 위젯(설정창 우클릭/J).
+		C_DXG_WIDGET* HitTestKeyedDeep(float _x, float _y) const
+		{
+			C_DXG_WIDGET* pHit_ = nullptr;
+			const _DXG_POINT o_(0.0f, 0.0f);	// 루트는 원점(0,0) 렌더
+			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
+			{
+				if (pRoot_) { C_DXG_WIDGET* h_ = pRoot_->HitTestKeyed(_x, _y, o_); if (h_ != nullptr) { pHit_ = h_; } }
+			}
+			return pHit_;
+		}
+		// 재귀 — 전 키 위젯 수집(탭 비활성 페이지 포함). 열 너비 복원 등.
+		void CollectKeyedDeep(std::vector<C_DXG_WIDGET*>& _out) const
+		{
+			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots) { if (pRoot_) { pRoot_->CollectKeyed(_out); } }
+		}
+
 		// 전 루트를 화면 원점(0,0) 기준으로 렌더(가시 위젯만).
 		// 2패스: (1) 일반 Render → (2) RenderOverlay(콤보 드롭다운 등 최상위 요소).
 		void Render(IDrawContext& _ctx)
