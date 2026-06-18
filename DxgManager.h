@@ -97,9 +97,10 @@ namespace dxgui
 
 		// 전 루트를 화면 원점(0,0) 기준으로 렌더(가시 위젯만).
 		// 2패스: (1) 일반 Render → (2) RenderOverlay(콤보 드롭다운 등 최상위 요소).
-		void Render(IDrawContext& _ctx)
+		// _origin: 콘텐츠 렌더 원점(스크롤 시 호스트가 (0,-scrollY) 전달). 기본 (0,0).
+		void Render(IDrawContext& _ctx, _DXG_POINT _origin = _DXG_POINT(0.0f, 0.0f))
 		{
-			const _DXG_POINT origin_(0.0f, 0.0f);
+			const _DXG_POINT origin_ = _origin;
 
 			// 모달 감지(메뉴 등 열린 팝업) — pass1 동안 입력 캡처로 아래 위젯 클릭 누수 차단.
 			bool bModal_ = false;
