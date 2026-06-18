@@ -80,6 +80,13 @@ namespace dxgui
 		bool IsEnabled() const { return m_bEnabled; }
 		void SetEnabled(bool _b) { m_bEnabled = _b; }
 
+		// ── 컬럼(열) 보유 위젯의 열 너비 편집 API(설정창이 열 단위 스피너 노출). 기본: 열 없음.
+		// 그리드/사다리 등이 override. 폭 단위는 위젯 정의(px). 영속은 호스트가 키 "<위젯키>.colw<i>" 로.
+		virtual int          ColumnCount() const { return 0; }
+		virtual float        ColumnWidth(int /*_i*/) const { return 0.0f; }
+		virtual void         SetColumnWidth(int /*_i*/, float /*_w*/) {}
+		virtual std::wstring ColumnName(int /*_i*/) const { return std::wstring(); }
+
 		// ── 타입 식별(직렬화/팩토리 용) ──
 		virtual E_DXG_WIDGET_TYPE GetType() const = 0;
 		virtual const char* GetTypeName() const = 0;	// "label" / "button" / ...

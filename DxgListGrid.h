@@ -119,6 +119,15 @@ namespace dxgui
 		int    SelectedRow() const { return m_nSelRow; }
 		void   SetSelectedRow(int _r) { m_nSelRow = _r; }
 
+		// 컬럼 너비 편집 API(설정창) — m_vCols 위임. 폭 단위 px, 최소 m_fMinColW 클램프.
+		int          ColumnCount() const override { return static_cast<int>(m_vCols.size()); }
+		float        ColumnWidth(int _i) const override
+		{ return (_i >= 0 && _i < static_cast<int>(m_vCols.size())) ? m_vCols[_i].fWidth : 0.0f; }
+		void         SetColumnWidth(int _i, float _w) override
+		{ if (_i >= 0 && _i < static_cast<int>(m_vCols.size())) { m_vCols[_i].fWidth = (_w < m_fMinColW) ? m_fMinColW : _w; } }
+		std::wstring ColumnName(int _i) const override
+		{ return (_i >= 0 && _i < static_cast<int>(m_vCols.size())) ? m_vCols[_i].sTitle : std::wstring(); }
+
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_LISTGRID; }
 		const char*       GetTypeName() const override { return "listgrid"; }
 
