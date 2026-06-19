@@ -7,6 +7,7 @@
 #include "DxgDrawContext.h"
 #include "DxgKeys.h"
 #include "DxgComboBox.h"	// CloseAllPopups — 루트 콤보 드롭다운 강제 닫기
+#include "DxgMenu.h"		// CloseAllPopups — 루트 메뉴 드롭다운 강제 닫기
 
 #include <vector>
 #include <memory>
@@ -54,6 +55,10 @@ namespace dxgui
 				if (pRoot_ && pRoot_->GetType() == DXG_WIDGET_COMBOBOX)
 				{
 					static_cast<C_DXG_COMBOBOX*>(pRoot_.get())->Close();
+				}
+				else if (pRoot_ && pRoot_->GetType() == DXG_WIDGET_MENU)
+				{
+					static_cast<C_DXG_MENU*>(pRoot_.get())->Close();	// 메뉴 드롭다운도 닫기(비활성 시)
 				}
 			}
 		}
