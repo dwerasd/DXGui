@@ -150,7 +150,7 @@ namespace dxgui
 				const bool bShiftClick_ = _ctx.IsKeyDown(DXG_VK_SHIFT);
 				if (!m_bFocused) { m_bFocused = true; m_sBuffer = DataToString_(); m_nBlinkCnt = 0; }
 				const size_t uHit_ = bYmd_ ? m_sBuffer.size()
-					: hitIdx_(_ctx.GetMousePos().x - fTx0_);
+					: hitIdx_(_ctx.GetMousePos().x - fTx0_ + m_fScrollX);
 				m_uCaret = uHit_;
 				// Shift+클릭(이미 포커스) → 앵커 유지(선택 확장). 그 외엔 앵커=캐럿(선택 해제).
 				if (!(bShiftClick_ && bWasFocused_)) { m_uSelAnchor = uHit_; }
@@ -166,7 +166,7 @@ namespace dxgui
 		// 드래그 중 — 앵커 고정, 캐럿이 마우스를 따라가며 범위 확장.
 		if (m_bDragSel && m_bFocused && _ctx.IsMouseDown(DXG_MOUSE_LEFT))
 		{
-			m_uCaret = hitIdx_(_ctx.GetMousePos().x - fTx0_);
+			m_uCaret = hitIdx_(_ctx.GetMousePos().x - fTx0_ + m_fScrollX);
 		}
 		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT)) { m_bDragSel = false; }
 
@@ -176,6 +176,19 @@ namespace dxgui
 		const size_t uSelL_ = (m_uSelAnchor < m_uCaret) ? m_uSelAnchor : m_uCaret;
 		const size_t uSelR_ = (m_uSelAnchor < m_uCaret) ? m_uCaret : m_uSelAnchor;
 		const bool   bHasSel_ = (uSelL_ != uSelR_);
+
+		// ── 가로 스크롤(ES_AUTOHSCROLL 등가) — 캐럿이 보이도록 텍스트를 좌우로 민다 ──
+		const float fInnerW_ = (abs_.w > 8.0f) ? (abs_.w - 8.0f) : 0.0f;
+		if (!m_bFocused) { m_fScrollX = 0.0f; }	// 비포커스 = 좌측부터 표시
+		else if (m_hFont != INVALID_FONT)
+		{
+			const float fCaretPix_ = caretX_(m_uCaret);
+			if (fCaretPix_ - m_fScrollX > fInnerW_) { m_fScrollX = fCaretPix_ - fInnerW_; }	// 캐럿 우측 이탈 → 좌로 스크롤
+			if (fCaretPix_ - m_fScrollX < 0.0f)     { m_fScrollX = fCaretPix_; }				// 캐럿 좌측 이탈 → 우로 스크롤
+			const float fTotalW_ = caretX_(m_sBuffer.size());
+			if (fTotalW_ - m_fScrollX < fInnerW_)   { m_fScrollX = (fTotalW_ > fInnerW_) ? (fTotalW_ - fInnerW_) : 0.0f; }	// 끝 공백 방지
+			if (m_fScrollX < 0.0f) { m_fScrollX = 0.0f; }
+		}
 
 		// ── 렌더: 배경/테두리/[선택]/텍스트/[조합]/캐럿 ──
 		_ctx.FillRect(abs_, m_BgColor);
@@ -194,13 +207,13 @@ namespace dxgui
 		{
 			const float fXL_ = caretX_(uSelL_);
 			const float fXR_ = caretX_(uSelR_);
-			_ctx.FillRect(_DXG_RECT(fTx0_ + fXL_, fTextY_, fXR_ - fXL_, fFontH_),
+			_ctx.FillRect(_DXG_RECT(fTx0_ + fXL_ - m_fScrollX, fTextY_, fXR_ - fXL_, fFontH_),
 				_DXG_COLOR(0xFFB5D2FFu));
 		}
 		// 텍스트.
 		if (!sShow_.empty() && m_hFont != INVALID_FONT)
 		{
-			_ctx.DrawText(m_hFont, _DXG_POINT(fTx0_, fTextY_), sShow_.c_str(), m_TextColor, m_fFontScale);
+			_ctx.DrawText(m_hFont, _DXG_POINT(fTx0_ - m_fScrollX, fTextY_), sShow_.c_str(), m_TextColor, m_fFontScale);
 		}
 		// IME 조합중(미확정) — 캐럿 위치에 밑줄로 표기. 확정은 PollTextInput 으로 들어옴.
 		float fCompW_ = 0.0f;
@@ -210,7 +223,7 @@ namespace dxgui
 			if (pComp_ != nullptr && pComp_[0] != L'\0')
 			{
 				fCompW_ = _ctx.MeasureText(m_hFont, pComp_, m_fFontScale).w;
-				const float fCx_ = fTx0_ + caretX_(m_uCaret);
+				const float fCx_ = fTx0_ + caretX_(m_uCaret) - m_fScrollX;
 				_ctx.DrawText(m_hFont, _DXG_POINT(fCx_, fTextY_), pComp_, m_BorderFocusColor, m_fFontScale);
 				_ctx.DrawLine(_DXG_POINT(fCx_, fTextY_ + fFontH_ - 1.0f),
 					_DXG_POINT(fCx_ + fCompW_, fTextY_ + fFontH_ - 1.0f), m_BorderFocusColor, 1.0f);
@@ -222,7 +235,7 @@ namespace dxgui
 			m_nBlinkCnt = (m_nBlinkCnt + 1) % 60;
 			if (m_nBlinkCnt < 30 && !bHasSel_)
 			{
-				const float fCaretX_ = fTx0_ + caretX_(m_uCaret) + fCompW_;
+				const float fCaretX_ = fTx0_ + caretX_(m_uCaret) - m_fScrollX + fCompW_;
 				_ctx.FillRect(_DXG_RECT(fCaretX_, fTextY_, 2.0f, fFontH_), m_BorderFocusColor);
 			}
 		}

@@ -44,6 +44,7 @@ namespace dxgui
 		size_t       m_uSelAnchor;        // 선택 앵커. ==m_uCaret 이면 선택 없음(캐럿만).
 		bool         m_bDragSel;          // 좌버튼 드래그로 범위선택 중
 		int          m_nBlinkCnt;         // caret blink 카운터 (frame 단위, 60 = ~1초 주기)
+		float        m_fScrollX;          // 가로 스크롤 오프셋(px) — 캐럿 가시화(ES_AUTOHSCROLL 등가)
 		std::function<void()> m_OnEnter;  // 엔터 커밋 콜백(없으면 무시)
 
 	public:
@@ -61,6 +62,7 @@ namespace dxgui
 			, m_uSelAnchor(0)
 			, m_bDragSel(false)
 			, m_nBlinkCnt(0)
+			, m_fScrollX(0.0f)
 		{
 		}
 
