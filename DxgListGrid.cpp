@@ -139,6 +139,14 @@ namespace dxgui
 			}
 		}
 
+		// 행 더블클릭 — 선택 갱신 후 콜백(차트반영/관심추가 등 호출처 동작). HTS 식.
+		if (m_bEnabled && m_OnDblClick && _ctx.IsMouseDoubleClicked(DXG_MOUSE_LEFT) && _ctx.IsMouseHovered(bodyAbs_))
+		{
+			const float fMy = _ctx.GetMousePos().y;
+			const int r = (m_fRowH > 0.0f) ? static_cast<int>(::floorf((fMy - fBodyTop + fScrollY) / m_fRowH)) : -1;
+			if (r >= 0 && r < nRows) { m_nSelRow = r; m_OnDblClick(r); }
+		}
+
 		// 본문 우클릭 — 행 선택 후 콜백(컨텍스트 메뉴는 호출처 소유). HTS 식.
 		if (m_bEnabled && m_OnRightClick && _ctx.IsMouseClicked(DXG_MOUSE_RIGHT)
 			&& _ctx.IsMouseHovered(bodyAbs_))
