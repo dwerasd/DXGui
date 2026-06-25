@@ -32,6 +32,7 @@ namespace dxgui
 		DXG_WIDGET_SPLITTER  = 11,
 		DXG_WIDGET_RADIO     = 12,
 		DXG_WIDGET_SPINNER   = 13,
+		DXG_WIDGET_COLORFIELD = 14,
 	};
 
 

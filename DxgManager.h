@@ -8,6 +8,7 @@
 #include "DxgKeys.h"
 #include "DxgComboBox.h"	// CloseAllPopups — 루트 콤보 드롭다운 강제 닫기
 #include "DxgMenu.h"		// CloseAllPopups — 루트 메뉴 드롭다운 강제 닫기
+#include "DxgColorField.h"	// CloseAllPopups — 루트 색필드 팝업 강제 닫기
 
 #include <vector>
 #include <memory>
@@ -59,6 +60,10 @@ namespace dxgui
 				else if (pRoot_ && pRoot_->GetType() == DXG_WIDGET_MENU)
 				{
 					static_cast<C_DXG_MENU*>(pRoot_.get())->Close();	// 메뉴 드롭다운도 닫기(비활성 시)
+				}
+				else if (pRoot_ && pRoot_->GetType() == DXG_WIDGET_COLORFIELD)
+				{
+					static_cast<C_DXG_COLOR_FIELD*>(pRoot_.get())->Close();	// 색필드 팝업도 닫기(비활성 시)
 				}
 			}
 		}

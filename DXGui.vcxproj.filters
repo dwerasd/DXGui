@@ -81,6 +81,9 @@
     <ClInclude Include="DxgSpinner.h">
       <Filter>위젯</Filter>
     </ClInclude>
+    <ClInclude Include="DxgColorField.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
     <ClInclude Include="DxgOrderSink.h">
       <Filter>코어</Filter>
     </ClInclude>
@@ -129,6 +132,9 @@
       <Filter>위젯</Filter>
     </ClCompile>
     <ClCompile Include="DxgSpinner.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgColorField.cpp">
       <Filter>위젯</Filter>
     </ClCompile>
   </ItemGroup>

@@ -259,6 +259,7 @@
     <ClInclude Include="DxgSplitter.h" />
     <ClInclude Include="DxgRadio.h" />
     <ClInclude Include="DxgSpinner.h" />
+    <ClInclude Include="DxgColorField.h" />
     <ClInclude Include="DxgOrderSink.h" />
   </ItemGroup>
   <ItemGroup>
@@ -299,6 +300,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="DxgSpinner.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgColorField.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pch.cpp">
