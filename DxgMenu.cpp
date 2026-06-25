@@ -28,8 +28,10 @@ namespace dxgui
 		_ctx.FillRect(box_, m_BgColor);
 		_ctx.DrawRectOutline(box_, m_BorderColor, 1.0f);
 
-		// 항목 렌더 + 입력.
-		const bool bClick = m_bEnabled && _ctx.IsMouseClicked(DXG_MOUSE_LEFT);
+		// 항목 렌더 + 입력. ★UP(Released) 구동 — DOWN 구동이면 항목이 DOWN 에 닫혀 모달이 풀린 뒤
+		//   이어진 UP 에서 메뉴 아래 버튼(UP 구동)이 발화(클릭관통). UP 까지 모달 유지해 아래 위젯 차단.
+		bool bClick = m_bEnabled && _ctx.IsMouseReleased(DXG_MOUSE_LEFT);
+		if (m_bJustOpened) { m_bJustOpened = false; bClick = false; }	// 연 UP 은 같은 프레임 무시(즉시 닫힘/오선택 방지)
 		float fY = m_fPosY;
 		for (size_t i = 0; i < m_vItems.size(); ++i)
 		{

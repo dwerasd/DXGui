@@ -26,6 +26,7 @@ namespace dxgui
 		std::vector<_MENU_ITEM> m_vItems;
 
 		bool       m_bOpen;
+		bool       m_bJustOpened;		// 연 프레임 1회 무시 — 메뉴를 연 UP(릴리즈)이 같은 프레임에 항목선택/외부닫기를 트리거하지 않도록
 		float      m_fPosX, m_fPosY;	// 팝업 좌상단(절대 px)
 		FontHandle m_hFont;
 		float      m_fItemH, m_fSepH, m_fCellPad, m_fMinWidth;
@@ -35,6 +36,7 @@ namespace dxgui
 	public:
 		C_DXG_MENU()
 			: m_bOpen(false)
+			, m_bJustOpened(false)
 			, m_fPosX(0.0f), m_fPosY(0.0f)
 			, m_hFont(INVALID_FONT)
 			, m_fItemH(26.0f), m_fSepH(9.0f), m_fCellPad(12.0f), m_fMinWidth(140.0f)
@@ -57,8 +59,8 @@ namespace dxgui
 		{ m_vItems.push_back(_MENU_ITEM{ std::wstring(), std::function<void()>(), true, false }); }
 		void ClearItems() { m_vItems.clear(); m_bOpen = false; }
 
-		void ShowAt(float _x, float _y) { m_fPosX = _x; m_fPosY = _y; m_bOpen = true; }
-		void Close() { m_bOpen = false; }
+		void ShowAt(float _x, float _y) { m_fPosX = _x; m_fPosY = _y; m_bOpen = true; m_bJustOpened = true; }
+		void Close() { m_bOpen = false; m_bJustOpened = false; }
 		bool IsOpen() const { return m_bOpen; }
 
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_MENU; }
