@@ -42,12 +42,12 @@ namespace dxgui
 		_ctx.FillTriangle(tri, m_ArrowColor);
 
 		// 열기만 처리(헤더 클릭). 닫기/항목선택은 오버레이 패스에서 처리.
-		// 열린 동안은 모달(IsModalActive=true) → pass1 캡처로 이 블록도 차단되므로
-		// 닫기 로직을 여기 두면 동작하지 않는다. 닫기는 RenderOverlay 로 이동.
-		if (m_bEnabled && !m_bOpen && bHov && _ctx.IsMouseClicked(DXG_MOUSE_LEFT))
+		// ★UP(Released) 구동 — 버튼과 동일. DOWN 구동이면 콤보가 DOWN 에 닫혀 모달이 풀린 뒤
+		//   이어진 UP 에서 드롭다운 아래 버튼이 발화(클릭관통). UP 까지 모달 유지해 아래 위젯 차단.
+		if (m_bEnabled && !m_bOpen && bHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
 		{
 			m_bOpen = true;
-			m_bJustOpened = true;	// 연 클릭이 오버레이의 외부클릭 닫기를 같은 프레임에 트리거하지 않도록
+			m_bJustOpened = true;	// 연 릴리즈가 오버레이의 외부클릭 닫기를 같은 프레임에 트리거하지 않도록
 		}
 	}
 
@@ -70,7 +70,7 @@ namespace dxgui
 			else if (bHov)        { _ctx.FillRect(itemR_, m_ItemHoverBg); }
 			this->drawTextClip_(_ctx, m_vItems[i], itemR_.x, itemR_.w, itemR_.y, itemR_.h, m_TextColor);
 
-			if (m_bEnabled && bHov && _ctx.IsMouseClicked(DXG_MOUSE_LEFT))
+			if (m_bEnabled && bHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))	// UP 구동(아래 버튼 클릭관통 차단)
 			{
 				if (m_nSel != i) { m_nSel = i; if (m_OnChange) { m_OnChange(i); } }
 				m_bOpen = false;
@@ -83,7 +83,7 @@ namespace dxgui
 		{
 			m_bJustOpened = false;
 		}
-		else if (m_bEnabled && _ctx.IsMouseClicked(DXG_MOUSE_LEFT) && !_ctx.IsMouseHovered(dd_))
+		else if (m_bEnabled && _ctx.IsMouseReleased(DXG_MOUSE_LEFT) && !_ctx.IsMouseHovered(dd_))	// UP 구동
 		{
 			m_bOpen = false;
 		}
