@@ -22,6 +22,8 @@ namespace dxgui
 		bool         m_bJustOpened;	// 연 프레임 외부클릭 닫기 1프레임 무시
 		FontHandle   m_hFont;
 		std::wstring m_sHex;		// hex 편집 버퍼("RRGGBB"/"AARRGGBB", '#' 미포함, 대문자)
+		std::wstring m_sR, m_sG, m_sB;	// R/G/B 10진 편집 버퍼(0~255)
+		int          m_nFocus;		// 입력 포커스 필드: 0=hex, 1=R, 2=G, 3=B
 
 		_DXG_COLOR   m_BorderColor;
 		_DXG_COLOR   m_BorderOpenColor;
@@ -36,6 +38,7 @@ namespace dxgui
 			, m_bOpen(false)
 			, m_bJustOpened(false)
 			, m_hFont(INVALID_FONT)
+			, m_nFocus(0)
 			, m_BorderColor(0xFF8896A8u)
 			, m_BorderOpenColor(0xFF236EE0u)
 			, m_PopupBgColor(0xFFFFFFFFu)
@@ -44,7 +47,7 @@ namespace dxgui
 		}
 
 		void SetFont(FontHandle _h)        { m_hFont = _h; }
-		void SetColor(unsigned int _argb)  { m_Color = _argb; m_sHex = HexFromColor_(_argb); }
+		void SetColor(unsigned int _argb)  { m_Color = _argb; syncBuffersFromColor_(); }
 		unsigned int GetColor() const      { return m_Color; }
 		void SetOnChange(std::function<void(unsigned int)> _fn) { m_OnChange = std::move(_fn); }
 
@@ -65,7 +68,10 @@ namespace dxgui
 		}
 		static std::wstring HexFromColor_(unsigned int _argb);	// 알파 FF → "RRGGBB", 그 외 → "AARRGGBB"
 		void applyHex_();			// m_sHex 가 6/8 자리면 m_Color 갱신 + OnChange(라이브 프리뷰)
+		void applyRgb_();			// R/G/B 버퍼(0~255) → m_Color 갱신 + OnChange(라이브)
 		void pickColor_(unsigned int _argb);	// 팔레트 선택 → 색/버퍼 갱신 + OnChange + 닫기
+		void syncBuffersFromColor_();			// m_Color → hex/R/G/B 버퍼 전부 동기
+		void syncOthersFromColor_();			// m_Color → 포커스 아닌 필드 버퍼만 동기(편집 중 보존)
 	};
 
 } // namespace dxgui

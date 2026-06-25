@@ -4,6 +4,8 @@
 
 #include <cstdio>
 #include <cwchar>
+#include <cwctype>
+#include <string>
 
 
 namespace dxgui
@@ -18,13 +20,14 @@ namespace dxgui
 		0xFFEF9A9Au, 0xFFFFAB91u, 0xFFFFE082u, 0xFFA5D6A7u, 0xFF80CBC4u, 0xFF90CAF9u, 0xFFB39DDBu, 0xFFF48FB1u,
 	};
 
-	static const int   kCols    = 8;
-	static const int   kRows    = 4;
-	static const float kCell    = 18.0f;
-	static const float kGap     = 3.0f;
-	static const float kPad     = 8.0f;
-	static const float kHexH    = 22.0f;
-	static const float kHashW   = 14.0f;	// '#' 표시 폭
+	static const int   kCols  = 8;
+	static const int   kRows  = 4;
+	static const float kCell  = 18.0f;
+	static const float kGap   = 3.0f;
+	static const float kPad   = 8.0f;
+	static const float kHexH  = 22.0f;
+	static const float kRgbH  = 22.0f;
+	static const float kHashW = 14.0f;	// '#' 표시 폭
 
 	std::wstring C_DXG_COLOR_FIELD::HexFromColor_(unsigned int _argb)
 	{
@@ -32,6 +35,23 @@ namespace dxgui
 		if (((_argb >> 24) & 0xFFu) == 0xFFu) { ::swprintf_s(sz, L"%06X", _argb & 0x00FFFFFFu); }
 		else                                  { ::swprintf_s(sz, L"%08X", _argb); }
 		return std::wstring(sz);
+	}
+
+	void C_DXG_COLOR_FIELD::syncBuffersFromColor_()
+	{
+		m_sHex = HexFromColor_(m_Color);
+		m_sR   = std::to_wstring((m_Color >> 16) & 0xFFu);
+		m_sG   = std::to_wstring((m_Color >>  8) & 0xFFu);
+		m_sB   = std::to_wstring( m_Color        & 0xFFu);
+	}
+
+	void C_DXG_COLOR_FIELD::syncOthersFromColor_()
+	{
+		// 포커스(편집 중) 필드 버퍼는 사용자 입력 보존, 나머지만 m_Color 기준 동기(라이브).
+		if (m_nFocus != 0) { m_sHex = HexFromColor_(m_Color); }
+		if (m_nFocus != 1) { m_sR   = std::to_wstring((m_Color >> 16) & 0xFFu); }
+		if (m_nFocus != 2) { m_sG   = std::to_wstring((m_Color >>  8) & 0xFFu); }
+		if (m_nFocus != 3) { m_sB   = std::to_wstring( m_Color        & 0xFFu); }
 	}
 
 	void C_DXG_COLOR_FIELD::applyHex_()
@@ -50,10 +70,25 @@ namespace dxgui
 		}
 	}
 
+	void C_DXG_COLOR_FIELD::applyRgb_()
+	{
+		// 각 채널 0~255 클램프(빈 버퍼=0). 알파 보존.
+		const auto pv_ = [](const std::wstring& _s) -> unsigned int
+		{
+			if (_s.empty()) { return 0u; }
+			long v = ::wcstol(_s.c_str(), nullptr, 10);
+			if (v < 0) { v = 0; } if (v > 255) { v = 255; }
+			return static_cast<unsigned int>(v);
+		};
+		const unsigned int r = pv_(m_sR), g = pv_(m_sG), b = pv_(m_sB);
+		m_Color = (m_Color & 0xFF000000u) | (r << 16) | (g << 8) | b;
+		if (m_OnChange) { m_OnChange(m_Color); }
+	}
+
 	void C_DXG_COLOR_FIELD::pickColor_(unsigned int _argb)
 	{
 		m_Color = _argb;
-		m_sHex  = HexFromColor_(_argb);
+		syncBuffersFromColor_();
 		if (m_OnChange) { m_OnChange(m_Color); }
 		m_bOpen = false;
 	}
@@ -65,7 +100,6 @@ namespace dxgui
 		const _DXG_RECT abs_ = AbsRect(_origin);
 		const bool bHov = _ctx.IsMouseHovered(abs_);
 
-		// 스와치: 체크무늬 생략(마커는 불투명) — 색 채움 + 테두리.
 		const _DXG_RECT inR_(abs_.x + 1.0f, abs_.y + 1.0f, abs_.w - 2.0f, abs_.h - 2.0f);
 		_ctx.FillRect(inR_, _DXG_COLOR(m_Color));
 		_ctx.DrawRectOutline(abs_, (m_bOpen || bHov) ? m_BorderOpenColor : m_BorderColor, (m_bOpen || bHov) ? 2.0f : 1.0f);
@@ -75,7 +109,8 @@ namespace dxgui
 		{
 			m_bOpen = true;
 			m_bJustOpened = true;
-			m_sHex = HexFromColor_(m_Color);
+			m_nFocus = 0;
+			syncBuffersFromColor_();
 		}
 	}
 
@@ -84,10 +119,10 @@ namespace dxgui
 		if (!m_bVisible || !m_bOpen) { return; }
 
 		const _DXG_RECT abs_ = AbsRect(_origin);
-		const float fGridW = kCols * kCell + (kCols - 1) * kGap;	// 144 + 21 = 165
+		const float fGridW = kCols * kCell + (kCols - 1) * kGap;	// 165
 		const float fPopW  = fGridW + kPad * 2.0f;				// 181
-		const float fGridH = kRows * kCell + (kRows - 1) * kGap;	// 72 + 9 = 81
-		const float fPopH  = kPad + fGridH + 10.0f + kHexH + kPad;	// 8+81+10+22+8 = 129
+		const float fGridH = kRows * kCell + (kRows - 1) * kGap;	// 81
+		const float fPopH  = kPad + fGridH + 10.0f + kHexH + 8.0f + kRgbH + kPad;	// 159
 		const _DXG_RECT pop_(abs_.x, abs_.y + abs_.h + 2.0f, fPopW, fPopH);
 
 		_ctx.FillRect(pop_, m_PopupBgColor);
@@ -109,34 +144,41 @@ namespace dxgui
 				{
 					_ctx.DrawRectOutline(cell_, bSel ? m_BorderOpenColor : _DXG_COLOR(0xFF222838u), 2.0f);
 				}
-				if (m_bEnabled && bCellHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+				if (m_bEnabled && !m_bJustOpened && bCellHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
 				{
 					this->pickColor_(s_aPalette[idx]);
 				}
 			}
 		}
 
-		// hex 입력줄: '#' + 버퍼 + 캐럿. 항상 활성(팝업 열림=hex 포커스).
+		// ── 필드 rect 산출 ──
 		const float hy = gy + fGridH + 10.0f;
 		const _DXG_RECT hexBox_(gx + kHashW, hy, fGridW - kHashW, kHexH);
-		if (m_hFont != INVALID_FONT)
+		const float ry = hy + kHexH + 8.0f;
+		const float fLblW = 12.0f, fRgbBoxW = 37.0f;
+		const _DXG_RECT rBox_(gx + fLblW + 1.0f,        ry, fRgbBoxW, kRgbH);
+		const _DXG_RECT gBox_(gx + 55.0f + fLblW + 1.0f, ry, fRgbBoxW, kRgbH);
+		const _DXG_RECT bBox_(gx + 110.0f + fLblW + 1.0f, ry, fRgbBoxW, kRgbH);
+
+		// 박스 클릭 → 포커스 전환(연 프레임 무시).
+		if (m_bEnabled && !m_bJustOpened && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
 		{
-			_ctx.DrawText(m_hFont, _DXG_POINT(gx, hy + 3.0f), L"#", m_TextColor, m_fFontScale);
-		}
-		_ctx.FillRect(hexBox_, _DXG_COLOR(0xFFF4F6FAu));
-		_ctx.DrawRectOutline(hexBox_, m_BorderOpenColor, 1.0f);
-		if (m_hFont != INVALID_FONT)
-		{
-			_ctx.DrawText(m_hFont, _DXG_POINT(hexBox_.x + 5.0f, hy + 3.0f), m_sHex.c_str(), m_TextColor, m_fFontScale);
-			const _DXG_SIZE szT = _ctx.MeasureText(m_hFont, m_sHex.c_str(), m_fFontScale);
-			_ctx.FillRect(_DXG_RECT(hexBox_.x + 5.0f + szT.w + 1.0f, hy + 4.0f, 1.5f, kHexH - 8.0f), m_BorderOpenColor);
+			if      (_ctx.IsMouseHovered(hexBox_)) { m_nFocus = 0; }
+			else if (_ctx.IsMouseHovered(rBox_))   { m_nFocus = 1; }
+			else if (_ctx.IsMouseHovered(gBox_))   { m_nFocus = 2; }
+			else if (_ctx.IsMouseHovered(bBox_))   { m_nFocus = 3; }
 		}
 
-		// 입력 처리(오버레이 패스 = capture off → 실입력).
-		if (m_bEnabled)
+		// 입력 → 포커스 필드 버퍼(오버레이 패스 = capture off → 실입력).
+		if (m_bEnabled && !m_bJustOpened)
 		{
+			std::wstring* pBuf = (m_nFocus == 0) ? &m_sHex : (m_nFocus == 1) ? &m_sR : (m_nFocus == 2) ? &m_sG : &m_sB;
+			const bool   bHexF = (m_nFocus == 0);
+			const size_t maxL  = bHexF ? 8u : 3u;
+			const auto accept_ = [&](wchar_t _c) -> bool { return bHexF ? IsHexCh_(_c) : (_c >= L'0' && _c <= L'9'); };
 			bool bDirty = false;
-			// 붙여넣기(Ctrl+V) — colorcop/트레이딩뷰 hex 복붙. '#'/공백 제거, hex 만, 8 캡.
+
+			// 붙여넣기(Ctrl+V) — colorcop/트레이딩뷰 값 복붙.
 			if (_ctx.IsKeyDown(DXG_VK_CONTROL) && _ctx.IsKeyPressed('V'))
 			{
 				const wchar_t* pClip = _ctx.GetClipboardText();
@@ -144,29 +186,55 @@ namespace dxgui
 				{
 					for (const wchar_t c : std::wstring(pClip))
 					{
-						if (m_sHex.size() >= 8) { break; }
-						if (IsHexCh_(c)) { m_sHex += static_cast<wchar_t>(::towupper(c)); bDirty = true; }
+						if (pBuf->size() >= maxL) { break; }
+						if (accept_(c)) { *pBuf += bHexF ? static_cast<wchar_t>(::towupper(c)) : c; bDirty = true; }
 					}
 				}
 			}
-			// 타이핑(IME 결과 포함 텍스트 큐).
+			// 타이핑(IME 결과 포함).
 			const wchar_t* pTxt = _ctx.PollTextInput();
 			if (pTxt != nullptr)
 			{
 				for (const wchar_t c : std::wstring(pTxt))
 				{
-					if (m_sHex.size() >= 8) { break; }
-					if (IsHexCh_(c)) { m_sHex += static_cast<wchar_t>(::towupper(c)); bDirty = true; }
+					if (pBuf->size() >= maxL) { break; }
+					if (accept_(c)) { *pBuf += bHexF ? static_cast<wchar_t>(::towupper(c)) : c; bDirty = true; }
 				}
 			}
 			// 백스페이스.
-			if (_ctx.IsKeyPressed(DXG_VK_BACK) && !m_sHex.empty()) { m_sHex.pop_back(); bDirty = true; }
+			if (_ctx.IsKeyPressed(DXG_VK_BACK) && !pBuf->empty()) { pBuf->pop_back(); bDirty = true; }
 
-			if (bDirty) { this->applyHex_(); }	// 6/8 자리면 라이브 반영
-
-			// Enter → 확정 + 닫기.
-			if (_ctx.IsKeyPressed(DXG_VK_RETURN)) { this->applyHex_(); m_bOpen = false; }
+			if (bDirty) { if (bHexF) { applyHex_(); } else { applyRgb_(); } }	// hex↔RGB 라이브 반영
+			if (_ctx.IsKeyPressed(DXG_VK_RETURN)) { if (bHexF) { applyHex_(); } else { applyRgb_(); } m_bOpen = false; }
 		}
+
+		// 포커스 아닌 필드 버퍼는 m_Color 기준 실시간 동기.
+		syncOthersFromColor_();
+
+		// ── 필드 렌더 ──
+		const auto drawField_ = [&](const _DXG_RECT& _box, const std::wstring& _s, bool _bFocused)
+		{
+			_ctx.FillRect(_box, _DXG_COLOR(0xFFF4F6FAu));
+			_ctx.DrawRectOutline(_box, _bFocused ? m_BorderOpenColor : m_BorderColor, _bFocused ? 2.0f : 1.0f);
+			if (m_hFont == INVALID_FONT) { return; }
+			_ctx.DrawText(m_hFont, _DXG_POINT(_box.x + 5.0f, _box.y + 3.0f), _s.c_str(), m_TextColor, m_fFontScale);
+			if (_bFocused)
+			{
+				const _DXG_SIZE szT = _ctx.MeasureText(m_hFont, _s.c_str(), m_fFontScale);
+				_ctx.FillRect(_DXG_RECT(_box.x + 5.0f + szT.w + 1.0f, _box.y + 4.0f, 1.5f, _box.h - 8.0f), m_BorderOpenColor);
+			}
+		};
+		if (m_hFont != INVALID_FONT)
+		{
+			_ctx.DrawText(m_hFont, _DXG_POINT(gx, hy + 3.0f), L"#", m_TextColor, m_fFontScale);
+			_ctx.DrawText(m_hFont, _DXG_POINT(gx,           ry + 3.0f), L"R", m_TextColor, m_fFontScale);
+			_ctx.DrawText(m_hFont, _DXG_POINT(gx + 55.0f,   ry + 3.0f), L"G", m_TextColor, m_fFontScale);
+			_ctx.DrawText(m_hFont, _DXG_POINT(gx + 110.0f,  ry + 3.0f), L"B", m_TextColor, m_fFontScale);
+		}
+		drawField_(hexBox_, m_sHex, m_nFocus == 0);
+		drawField_(rBox_,   m_sR,   m_nFocus == 1);
+		drawField_(gBox_,   m_sG,   m_nFocus == 2);
+		drawField_(bBox_,   m_sB,   m_nFocus == 3);
 
 		// 팝업 밖 클릭 → 닫기(연 프레임 1회 무시).
 		if (m_bJustOpened)
