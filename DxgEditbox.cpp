@@ -191,7 +191,7 @@ namespace dxgui
 		}
 
 		// ── 렌더: 배경/테두리/[선택]/텍스트/[조합]/캐럿 ──
-		_ctx.FillRect(abs_, m_BgColor);
+		_ctx.FillRect(abs_, m_bEnabled ? m_BgColor : _DXG_COLOR(0xFFEDEFF2u));	// 비활성=회색 배경
 		_ctx.DrawRectOutline(abs_,
 			m_bFocused ? m_BorderFocusColor : m_BorderColor,
 			m_bFocused ? 2.0f : 1.0f);
@@ -213,7 +213,7 @@ namespace dxgui
 		// 텍스트.
 		if (!sShow_.empty() && m_hFont != INVALID_FONT)
 		{
-			_ctx.DrawText(m_hFont, _DXG_POINT(fTx0_ - m_fScrollX, fTextY_), sShow_.c_str(), m_TextColor, m_fFontScale);
+			_ctx.DrawText(m_hFont, _DXG_POINT(fTx0_ - m_fScrollX, fTextY_), sShow_.c_str(), m_bEnabled ? m_TextColor : _DXG_COLOR(0xFFAAB2BEu), m_fFontScale);	// 비활성=회색 텍스트
 		}
 		// IME 조합중(미확정) — 캐럿 위치에 밑줄로 표기. 확정은 PollTextInput 으로 들어옴.
 		float fCompW_ = 0.0f;
