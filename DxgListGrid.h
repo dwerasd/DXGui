@@ -69,6 +69,8 @@ namespace dxgui
 		float m_fResizeStartW{ 0.0f };
 		float m_fMinColW{ 36.0f };
 		bool  m_bHeaderInteract{ true };	// 정렬/리사이즈 활성
+		bool  m_bStretchLast{ false };		// 마지막 컬럼이 남은 본문폭을 채움(윈도우 ListView 식). 클리핑/수동조절 방지.
+		bool  m_bHeaderCenter{ false };		// 헤더 제목 가운데정렬(데이터 정렬과 무관)
 
 	public:
 		C_DXG_LISTGRID();
@@ -79,6 +81,8 @@ namespace dxgui
 		void SetRowAlt(bool _b)            { m_bRowAlt = _b; }
 		void SetGridLines(bool _b)         { m_bGridLines = _b; }
 		void SetHeaderInteract(bool _b)    { m_bHeaderInteract = _b; }	// 정렬/리사이즈 on/off
+		void SetStretchLastColumn(bool _b) { m_bStretchLast = _b; }		// 마지막 컬럼 남은폭 채움(클리핑/수동조절 방지)
+		void SetHeaderCenter(bool _b)      { m_bHeaderCenter = _b; }		// 헤더 제목 가운데정렬
 		void SetOnSelect(std::function<void(int)> _fn) { m_OnSelect = std::move(_fn); }
 		// 행 더블클릭 콜백 — 행 인덱스 전달. 단일클릭(선택)과 별개로 발화(HTS 식).
 		void SetOnDblClick(std::function<void(int)> _fn) { m_OnDblClick = std::move(_fn); }
@@ -146,6 +150,7 @@ namespace dxgui
 		// 셀/헤더 텍스트를 영역(_colX..+_colW, _top..+_h)에 정렬 클립 렌더.
 		void drawCellText_(IDrawContext& _ctx, const std::wstring& _s, _DXG_COLOR _color,
 			float _colX, float _colW, float _top, float _h, E_DXG_TEXT_ALIGN _align);
+		float effColW_(int _c, float _fBodyW) const;	// 컬럼 유효폭(stretch 모드면 마지막=남은폭)
 		void sortRows_();	// m_nSortCol/m_bSortAsc 기준 행 정렬(숫자/문자 자동)
 	};
 

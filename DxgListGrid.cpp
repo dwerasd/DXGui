@@ -79,6 +79,17 @@ namespace dxgui
 		_ctx.PopClipRect();
 	}
 
+	// 컬럼 유효폭 — stretch 모드면 마지막 컬럼은 남은 본문폭(나머지 합 제외)을 채운다(윈도우 ListView 식).
+	float C_DXG_LISTGRID::effColW_(int _c, float _fBodyW) const
+	{
+		const int nLast = static_cast<int>(m_vCols.size()) - 1;
+		if (!m_bStretchLast || _c != nLast || nLast < 0) { return m_vCols[_c].fWidth; }
+		float fOther = 0.0f;
+		for (int i = 0; i < nLast; ++i) { fOther += m_vCols[i].fWidth; }
+		const float w = _fBodyW - fOther;
+		return (w < m_fMinColW) ? m_fMinColW : w;
+	}
+
 	void C_DXG_LISTGRID::Render(IDrawContext& _ctx, _DXG_POINT _origin)
 	{
 		if (!m_bVisible) { return; }
@@ -96,9 +107,9 @@ namespace dxgui
 
 		// 스크롤 필요 판정(가로/세로 상호 의존 — 2회 수렴) + 본문 영역 산출.
 		bool bV = fContentH > fBodyH + 0.5f;
-		bool bH = fTotalColW > (abs_.w - (bV ? m_fScrollbarW : 0.0f)) + 0.5f;
+		bool bH = !m_bStretchLast && fTotalColW > (abs_.w - (bV ? m_fScrollbarW : 0.0f)) + 0.5f;
 		bV = fContentH > (fBodyH - (bH ? m_fScrollbarW : 0.0f)) + 0.5f;
-		bH = fTotalColW > (abs_.w - (bV ? m_fScrollbarW : 0.0f)) + 0.5f;
+		bH = !m_bStretchLast && fTotalColW > (abs_.w - (bV ? m_fScrollbarW : 0.0f)) + 0.5f;
 		const float fBodyW    = abs_.w - (bV ? m_fScrollbarW : 0.0f);
 		const float fBodyVisH = fBodyH - (bH ? m_fScrollbarW : 0.0f);
 		const _DXG_RECT bodyAbs_(abs_.x, fBodyTop, fBodyW, (fBodyVisH > 0.0f) ? fBodyVisH : 0.0f);
@@ -178,7 +189,7 @@ namespace dxgui
 				float fCx = abs_.x - fScrollX;
 				for (int c = 0; c < nCols; ++c)
 				{
-					const float fCw = m_vCols[c].fWidth;
+					const float fCw = this->effColW_(c, fBodyW);
 					if (fCx >= abs_.x + fBodyW) { break; }		// 우측 밖
 					if (fCx + fCw > abs_.x)						// 좌측 밖 컬럼 skip
 					{
@@ -207,7 +218,7 @@ namespace dxgui
 				float fVx = abs_.x - fScrollX;
 				for (int c = 0; c < nCols - 1; ++c)
 				{
-					fVx += m_vCols[c].fWidth;
+					fVx += this->effColW_(c, fBodyW);
 					if (fVx <= abs_.x) { continue; }
 					if (fVx >= abs_.x + fBodyW) { break; }
 					_ctx.DrawLine(_DXG_POINT(fVx, fBodyTop),
@@ -238,7 +249,7 @@ namespace dxgui
 				int nBorder = -1, nHitCol = -1;
 				for (int c = 0; c < nCols; ++c)
 				{
-					const float fRight = fCx + m_vCols[c].fWidth;
+					const float fRight = fCx + this->effColW_(c, fBodyW);
 					if (std::fabs(fMx - fRight) <= 4.0f && fRight <= abs_.x + fBodyW + 4.0f) { nBorder = c; }
 					if (fMx >= fCx && fMx < fRight && fMx < abs_.x + fBodyW) { nHitCol = c; }
 					fCx = fRight;
@@ -265,7 +276,7 @@ namespace dxgui
 			float fHx = abs_.x - fScrollX;
 			for (int c = 0; c < nCols; ++c)
 			{
-				const float fCw = m_vCols[c].fWidth;
+				const float fCw = this->effColW_(c, fBodyW);
 				if (fHx >= abs_.x + fBodyW) { break; }
 				if (fHx + fCw > abs_.x)
 				{
@@ -273,7 +284,8 @@ namespace dxgui
 					{
 						_ctx.DrawLine(_DXG_POINT(fHx, abs_.y), _DXG_POINT(fHx, abs_.y + fHeaderH), m_GridLine, 1.0f);
 					}
-					this->drawCellText_(_ctx, m_vCols[c].sTitle, m_HeaderText, fHx, fCw, abs_.y, fHeaderH, m_vCols[c].align);
+					this->drawCellText_(_ctx, m_vCols[c].sTitle, m_HeaderText, fHx, fCw, abs_.y, fHeaderH,
+						m_bHeaderCenter ? DXG_TEXT_ALIGN_CENTER : m_vCols[c].align);
 					if (c == m_nSortCol)	// 정렬 표시 ▲/▼ (우측)
 					{
 						const float fAx = fHx + fCw - 14.0f;
