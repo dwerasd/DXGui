@@ -88,6 +88,12 @@ namespace dxgui
 		virtual void         SetColumnWidth(int /*_i*/, float /*_w*/) {}
 		virtual std::wstring ColumnName(int /*_i*/) const { return std::wstring(); }
 
+		// ── 텍스트 가로정렬(라벨/에디트박스 등 텍스트 위젯). 기본: 미지원/좌측. 0좌/1중/2우.
+		//    설정창이 지원 위젯에 정렬 선택 노출. 영속은 호스트가 키 "<위젯키>.align" 로.
+		virtual bool SupportsTextAlign() const { return false; }
+		virtual int  GetTextAlign() const { return 0; }
+		virtual void SetTextAlign(int /*_a*/) {}
+
 		// ── 타입 식별(직렬화/팩토리 용) ──
 		virtual E_DXG_WIDGET_TYPE GetType() const = 0;
 		virtual const char* GetTypeName() const = 0;	// "label" / "button" / ...

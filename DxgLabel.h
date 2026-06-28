@@ -37,6 +37,11 @@ namespace dxgui
 		E_DXG_VTEXT_ALIGN GetVAlign() const { return m_VAlign; }
 		FontHandle        GetFont()   const { return m_hFont; }
 
+		// 텍스트 가로정렬 — 베이스 virtual 연결(기존 m_Align 재사용). 설정창/영속이 일반적으로 질의.
+		bool SupportsTextAlign() const override { return true; }
+		int  GetTextAlign() const override      { return static_cast<int>(m_Align); }
+		void SetTextAlign(int _a) override      { m_Align = static_cast<E_DXG_TEXT_ALIGN>((_a < 0 || _a > 2) ? 0 : _a); }
+
 		// 타입
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_LABEL; }
 		const char*       GetTypeName() const override { return "label"; }

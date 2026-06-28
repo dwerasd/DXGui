@@ -45,6 +45,7 @@ namespace dxgui
 		bool         m_bDragSel;          // 좌버튼 드래그로 범위선택 중
 		int          m_nBlinkCnt;         // caret blink 카운터 (frame 단위, 60 = ~1초 주기)
 		float        m_fScrollX;          // 가로 스크롤 오프셋(px) — 캐럿 가시화(ES_AUTOHSCROLL 등가)
+		E_DXG_TEXT_ALIGN m_eTextAlign;    // 텍스트 가로정렬(기본 좌). 텍스트가 박스보다 짧을 때만 적용.
 		std::function<void()> m_OnEnter;  // 엔터 커밋 콜백(없으면 무시)
 
 	public:
@@ -63,6 +64,7 @@ namespace dxgui
 			, m_bDragSel(false)
 			, m_nBlinkCnt(0)
 			, m_fScrollX(0.0f)
+			, m_eTextAlign(DXG_TEXT_ALIGN_LEFT)
 		{
 		}
 
@@ -86,6 +88,11 @@ namespace dxgui
 		E_DXG_EDIT_TYPE GetDataType() const { return m_DataType; }
 		bool   IsSelected() const           { return m_uSelAnchor != m_uCaret; }
 		size_t GetBufferSize() const        { return m_sBuffer.size(); }
+
+		// 텍스트 가로정렬 — 베이스 virtual 연결. 설정창/영속이 일반적으로 질의(0좌/1중/2우).
+		bool SupportsTextAlign() const override { return true; }
+		int  GetTextAlign() const override      { return static_cast<int>(m_eTextAlign); }
+		void SetTextAlign(int _a) override      { m_eTextAlign = static_cast<E_DXG_TEXT_ALIGN>((_a < 0 || _a > 2) ? 0 : _a); }
 
 		// 타입
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_EDITBOX; }

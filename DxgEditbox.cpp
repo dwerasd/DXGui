@@ -110,7 +110,16 @@ namespace dxgui
 
 		const _DXG_RECT abs_ = AbsRect(_origin);
 		const bool  bHover_ = _ctx.IsMouseHovered(abs_);
-		const float fTx0_   = abs_.x + 4.0f;	// 텍스트 좌측 기준 X
+		// 텍스트 정렬 오프셋 — 표시문자열이 박스보다 짧을 때만(넘치면 기존 스크롤). 캐럿/선택/히트가 fTx0_ 경유 동반이동.
+		float fAlignOff_ = 0.0f;
+		if (m_eTextAlign != DXG_TEXT_ALIGN_LEFT && m_hFont != INVALID_FONT)
+		{
+			const std::wstring sMeas_ = m_bFocused ? m_sBuffer : DataToString_();
+			const float fInnerW_ = abs_.w - 8.0f;
+			const float fTextW_  = sMeas_.empty() ? 0.0f : _ctx.MeasureText(m_hFont, sMeas_.c_str(), m_fFontScale).w;
+			if (fTextW_ < fInnerW_) { fAlignOff_ = (m_eTextAlign == DXG_TEXT_ALIGN_CENTER) ? (fInnerW_ - fTextW_) * 0.5f : (fInnerW_ - fTextW_); }
+		}
+		const float fTx0_   = abs_.x + 4.0f + fAlignOff_;	// 텍스트 좌측 기준 X(+정렬 오프셋)
 		// YMD 는 마스킹 필드 — 캐럿/드래그 미세편집 대신 append+정규화(캐럿=끝) 단순 모드.
 		const bool  bYmd_   = (m_DataType == DXG_EDIT_YMD);
 
