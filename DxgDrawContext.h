@@ -20,6 +20,10 @@ namespace dxgui
 	using FontHandle = int32_t;
 	inline constexpr FontHandle INVALID_FONT = -1;
 
+	// 현재 렌더 캔버스(호스트 클라이언트, DIP) 높이 — 호스트가 매 프레임 설정.
+	// 오버레이(콤보 드롭다운)가 펼침 방향/높이를 창 안으로 클램프하는 데 사용. 0=미설정(아래로 펼침).
+	extern float g_fOverlayCanvasH;	// 정의=DxgComboBox.cpp
+
 
 	enum E_DXG_TEXT_ALIGN : uint8_t
 	{
@@ -47,6 +51,10 @@ namespace dxgui
 
 
 	// 추상 DrawContext — 위젯/차트는 본 인터페이스만 참조.
+	// 현재 렌더 캔버스(호스트 클라이언트, DIP) 높이 - 호스트가 매 프레임 설정.
+	// 오버레이(콤보 드롭다운)가 위/아래 펼침 방향과 높이 클램프를 판단하는 데 사용. 0=미설정(아래로 펼침).
+	extern float g_fOverlayCanvasH;
+
 	class IDrawContext
 	{
 	public:

@@ -4,6 +4,8 @@
 
 namespace dxgui
 {
+	// 호스트가 매 프레임 설정하는 캔버스(클라이언트, DIP) 높이 정의(선언=DxgDrawContext.h extern).
+	float g_fOverlayCanvasH = 0.0f;
 
 	void C_DXG_COMBOBOX::drawTextClip_(IDrawContext& _ctx, const std::wstring& _s,
 		float _x, float _w, float _top, float _h, _DXG_COLOR _color)
@@ -48,6 +50,7 @@ namespace dxgui
 		{
 			m_bOpen = true;
 			m_bJustOpened = true;	// 연 릴리즈가 오버레이의 외부클릭 닫기를 같은 프레임에 트리거하지 않도록
+			m_fScrollY = m_fItemH * static_cast<float>(m_nSel > 0 ? m_nSel : 0);	// 선택항목이 보이게(오버레이에서 클램프)
 		}
 	}
 
@@ -56,15 +59,50 @@ namespace dxgui
 		if (!m_bVisible || !m_bOpen || m_vItems.empty()) { return; }
 
 		const _DXG_RECT abs_ = AbsRect(_origin);
-		const _DXG_RECT dd_  = this->dropRect_(abs_);
+		const int n = static_cast<int>(m_vItems.size());
+		const float fFullH = m_fItemH * static_cast<float>(n);
+
+		// 펼침 방향/높이 — 캔버스(창) 안에 들어가도록 클램프. 아래 공간이 너무 작으면 위로 펼침.
+		// g_fOverlayCanvasH<=0(미주입) 이면 기존 동작(전체 높이 아래로).
+		const float fCanvasH = g_fOverlayCanvasH;
+		const float fMargin  = 2.0f;
+		float fRoomBelow = (fCanvasH > 0.0f) ? (fCanvasH - (abs_.y + abs_.h) - fMargin) : fFullH;
+		float fRoomAbove = (fCanvasH > 0.0f) ? (abs_.y - fMargin) : fFullH;
+		if (fRoomBelow < 0.0f) { fRoomBelow = 0.0f; }
+		if (fRoomAbove < 0.0f) { fRoomAbove = 0.0f; }
+		const float fMinH = m_fItemH * 4.0f;	// 아래가 이보다 좁고 위가 더 넓으면 위로 전환
+		bool  bUp   = (fCanvasH > 0.0f) && (fRoomBelow < fFullH) && (fRoomBelow < fMinH) && (fRoomAbove > fRoomBelow);
+		float fAvail = bUp ? fRoomAbove : fRoomBelow;
+		int   nVis  = (fAvail >= fFullH) ? n : static_cast<int>(fAvail / m_fItemH);
+		if (nVis < 1) { nVis = 1; }
+		if (nVis > n) { nVis = n; }
+		const float fDropH = m_fItemH * static_cast<float>(nVis);
+		const float fDropY = bUp ? (abs_.y - fDropH) : (abs_.y + abs_.h);
+		const _DXG_RECT dd_(abs_.x, fDropY, abs_.w, fDropH);
+
+		// 스크롤 가능 여부 + 휠 처리(호스트가 모달 중 휠을 컨텍스트로 넘김). 노치당 3행.
+		const float fMaxScroll = fFullH - fDropH;
+		const bool  bScroll    = fMaxScroll > 0.5f;
+		if (bScroll)
+		{
+			const float fWheel = _ctx.GetWheelDelta();
+			if (fWheel != 0.0f) { m_fScrollY -= fWheel * m_fItemH * 3.0f; }
+		}
+		if (m_fScrollY < 0.0f) { m_fScrollY = 0.0f; }
+		if (m_fScrollY > fMaxScroll) { m_fScrollY = (fMaxScroll > 0.0f) ? fMaxScroll : 0.0f; }
 
 		_ctx.FillRect(dd_, m_DropBgColor);
 		_ctx.DrawRectOutline(dd_, m_BorderOpenColor, 1.0f);
 
-		const int n = static_cast<int>(m_vItems.size());
+		const float fBarW  = bScroll ? 6.0f : 0.0f;	// 스크롤바 폭(있을 때만)
+		const float fItemW = dd_.w - fBarW;
+
+		_ctx.PushClipRect(dd_);	// 항목을 드롭다운 박스로 클립(스크롤 넘침/캔버스 밖 미표시)
 		for (int i = 0; i < n; ++i)
 		{
-			const _DXG_RECT itemR_(dd_.x, dd_.y + static_cast<float>(i) * m_fItemH, dd_.w, m_fItemH);
+			const float fItemY = dd_.y + static_cast<float>(i) * m_fItemH - m_fScrollY;
+			if (fItemY + m_fItemH <= dd_.y || fItemY >= dd_.y + dd_.h) { continue; }	// 박스 밖 = skip
+			const _DXG_RECT itemR_(dd_.x, fItemY, fItemW, m_fItemH);
 			const bool bHov = _ctx.IsMouseHovered(itemR_);
 			if (i == m_nSel)      { _ctx.FillRect(itemR_, m_ItemSelBg); }
 			else if (bHov)        { _ctx.FillRect(itemR_, m_ItemHoverBg); }
@@ -75,6 +113,17 @@ namespace dxgui
 				if (m_nSel != i) { m_nSel = i; if (m_OnChange) { m_OnChange(i); } }
 				m_bOpen = false;
 			}
+		}
+		_ctx.PopClipRect();
+
+		// 스크롤바(트랙+thumb) — 우측 가장자리. 휠 구동(드래그 미지원).
+		if (bScroll)
+		{
+			const float fTrackX = dd_.x + dd_.w - fBarW;
+			_ctx.FillRect(_DXG_RECT(fTrackX, dd_.y, fBarW, dd_.h), m_ItemHoverBg);
+			const float fThumbH = (dd_.h > 0.0f) ? (dd_.h * (dd_.h / fFullH)) : 0.0f;
+			const float fThumbY = dd_.y + (m_fScrollY / fMaxScroll) * (dd_.h - fThumbH);
+			_ctx.FillRect(_DXG_RECT(fTrackX + 1.0f, fThumbY, fBarW - 2.0f, fThumbH), m_ArrowColor);
 		}
 
 		// 드롭다운 밖(헤더 포함) 클릭 → 닫기. 오버레이 패스(capture=false)에서만 동작.
