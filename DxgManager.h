@@ -47,16 +47,6 @@ namespace dxgui
 		void Clear() { m_vRoots.clear(); }
 		size_t RootCount() const { return m_vRoots.size(); }
 
-		// 열린 모달(콤보/메뉴/색필드 드롭다운 등) 존재 여부 — 호스트가 휠 라우팅(콤보 우선) 판단에 사용.
-		bool IsModalActive() const
-		{
-			for (const std::unique_ptr<C_DXG_WIDGET>& pRoot_ : m_vRoots)
-			{
-				if (pRoot_ && pRoot_->IsModalActive()) { return true; }
-			}
-			return false;
-		}
-
 		// 열린 팝업(루트 콤보 드롭다운) 강제 닫기 — 호스트가 창 비활성(포그라운드 상실) 시 호출.
 		// 모달 감지와 동일하게 루트 한정(현 프레임워크 규약). 가상함수 미추가(vtable/ABI 불변).
 		void CloseAllPopups()

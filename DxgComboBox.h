@@ -61,7 +61,7 @@ namespace dxgui
 		void SetOnChange(std::function<void(int)> _fn) { m_OnChange = std::move(_fn); }
 
 		void AddItem(const std::wstring& _s) { m_vItems.push_back(_s); if (m_nSel < 0) { m_nSel = 0; } }
-		void ClearItems() { m_vItems.clear(); m_nSel = -1; m_bOpen = false; m_fScrollY = 0.0f; }
+		void ClearItems() { m_vItems.clear(); m_nSel = -1; m_bOpen = false; }
 
 		int  GetSelected() const { return m_nSel; }
 		void SetSelected(int _i) { if (_i >= 0 && _i < static_cast<int>(m_vItems.size())) { m_nSel = _i; } }
@@ -73,7 +73,7 @@ namespace dxgui
 		size_t ItemCount() const { return m_vItems.size(); }
 		bool   IsOpen() const { return m_bOpen; }
 		// 드롭다운 강제 닫기 — 호스트가 창 비활성(포그라운드 상실) 시 호출(매니저 CloseAllPopups).
-		void   Close() { m_bOpen = false; m_bJustOpened = false; m_fScrollY = 0.0f; }
+		void   Close() { m_bOpen = false; m_bJustOpened = false; }
 		// 열린 동안 모달 — 매니저가 pass1 입력을 캡처해 아래 위젯으로의 클릭 누수 차단.
 		// (드롭다운 항목 클릭이 겹친 하단 버튼으로 관통하던 버그 차단.)
 		bool   IsModalActive() const override { return m_bOpen; }
