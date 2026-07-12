@@ -1,11 +1,12 @@
 ﻿// DxgListGrid.h: 표 위젯(고정 헤더 + 세로 스크롤 + 셀 단위 색 + 행 선택).
 // 투자자정보/호가/체결/잔고 등 HTS 그리드 렌더용. 데이터는 외부 주입(셀 텍스트/색).
-// 가로 스크롤은 미지원(P1) — 컬럼 폭 합이 표 폭을 넘으면 우측 클립.
+// 가로 스크롤은 미지원(P1) - 컬럼 폭 합이 표 폭을 넘으면 우측 클립.
 #pragma once
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
 #include "DxgTheme.h"
+#include "DxgBadge.h"		// E_DXG_BADGE_KIND / BadgeColor (배지 셀)
 #include "DxgScrollbar.h"
 
 #include <vector>
@@ -16,7 +17,7 @@
 namespace dxgui
 {
 
-	// 컬럼 정의 — 제목/폭(px)/가로정렬.
+	// 컬럼 정의 - 제목/폭(px)/가로정렬.
 	struct _DXG_GRID_COL
 	{
 		std::wstring     sTitle;
@@ -28,14 +29,16 @@ namespace dxgui
 			: sTitle(std::move(_t)), fWidth(_w), align(_a) {}
 	};
 
-	// 셀 — 텍스트 + 글자색 + 배경색(alpha 0 = 행 기본 배경 사용, HTS +/- 색은 여기 지정).
+	// 셀 - 텍스트 + 글자색 + 배경색(alpha 0 = 행 기본 배경 사용, HTS +/- 색은 여기 지정).
+	// nBadge: 255 = 일반 텍스트 셀(기본, 기존 경로 불변), 그 외 = E_DXG_BADGE_KIND -> pill 렌더.
 	struct _DXG_GRID_CELL
 	{
 		std::wstring sText;
 		_DXG_COLOR   textColor;
 		_DXG_COLOR   bgColor;
+		uint8_t      nBadge;
 
-		_DXG_GRID_CELL() : textColor(Theme().textMain), bgColor(0u) {}
+		_DXG_GRID_CELL() : textColor(Theme().textMain), bgColor(0u), nBadge(255u) {}
 	};
 
 
@@ -58,10 +61,10 @@ namespace dxgui
 		C_DXG_SCROLLBAR m_ScrollV;	// 임베드 세로 스크롤바(필요 시만 표시)
 		C_DXG_SCROLLBAR m_ScrollH;	// 임베드 가로 스크롤바(컬럼폭 합 > 본문폭 일 때)
 		std::function<void(int)> m_OnSelect;
-		std::function<void(int)> m_OnDblClick;	// 본문 행 더블클릭(행 인덱스) — 차트반영/관심추가 등 호출처 동작
-		std::function<void(float, float)> m_OnRightClick;	// 본문 우클릭(x,y 화면좌표) — 컨텍스트 메뉴 호출처
+		std::function<void(int)> m_OnDblClick;	// 본문 행 더블클릭(행 인덱스) - 차트반영/관심추가 등 호출처 동작
+		std::function<void(float, float)> m_OnRightClick;	// 본문 우클릭(x,y 화면좌표) - 컨텍스트 메뉴 호출처
 
-		// 헤더 상호작용 — 정렬(클릭) / 컬럼 리사이즈(경계 드래그).
+		// 헤더 상호작용 - 정렬(클릭) / 컬럼 리사이즈(경계 드래그).
 		int   m_nSortCol{ -1 };		// 정렬 컬럼(-1=없음)
 		bool  m_bSortAsc{ true };
 		int   m_nResizeCol{ -1 };	// 리사이즈 중 컬럼
@@ -85,9 +88,9 @@ namespace dxgui
 		void SetStretchLastColumn(bool _b) { m_bStretchLast = _b; }		// 마지막 컬럼 남은폭 채움(클리핑/수동조절 방지)
 		void SetHeaderCenter(bool _b)      { m_bHeaderCenter = _b; }		// 헤더 제목 가운데정렬
 		void SetOnSelect(std::function<void(int)> _fn) { m_OnSelect = std::move(_fn); }
-		// 행 더블클릭 콜백 — 행 인덱스 전달. 단일클릭(선택)과 별개로 발화(HTS 식).
+		// 행 더블클릭 콜백 - 행 인덱스 전달. 단일클릭(선택)과 별개로 발화(HTS 식).
 		void SetOnDblClick(std::function<void(int)> _fn) { m_OnDblClick = std::move(_fn); }
-		// 본문 우클릭 콜백 — (x,y) 화면좌표 전달. 컨텍스트 메뉴는 호출처가 소유.
+		// 본문 우클릭 콜백 - (x,y) 화면좌표 전달. 컨텍스트 메뉴는 호출처가 소유.
 		void SetOnRightClick(std::function<void(float, float)> _fn) { m_OnRightClick = std::move(_fn); }
 		void SetColors(_DXG_COLOR _hdrBg, _DXG_COLOR _hdrText, _DXG_COLOR _line,
 			_DXG_COLOR _rowBg, _DXG_COLOR _rowAltBg, _DXG_COLOR _selBg, _DXG_COLOR _selText)
@@ -101,7 +104,7 @@ namespace dxgui
 		{ m_vCols.emplace_back(_sTitle, _fWidth, _a); }
 		void ClearColumns() { m_vCols.clear(); }
 
-		// 행 구성 — AddRow 후 SetCell. 셀은 컬럼 수만큼 자동 확보.
+		// 행 구성 - AddRow 후 SetCell. 셀은 컬럼 수만큼 자동 확보.
 		void ClearRows() { m_vRows.clear(); m_nSelRow = -1; }
 		int  AddRow()
 		{
@@ -121,13 +124,21 @@ namespace dxgui
 			if (_nCol < 0 || _nCol >= static_cast<int>(m_vRows[_nRow].size())) { return; }
 			m_vRows[_nRow][_nCol].bgColor = _bg;
 		}
+		// 배지 셀 - 셀을 pill(틴트 배경 + 본색 텍스트)로 렌더. 정렬은 컬럼 정렬을 따른다.
+		void SetCellBadge(int _nRow, int _nCol, const std::wstring& _sText, E_DXG_BADGE_KIND _kind)
+		{
+			if (_nRow < 0 || _nRow >= static_cast<int>(m_vRows.size())) { return; }
+			if (_nCol < 0 || _nCol >= static_cast<int>(m_vRows[_nRow].size())) { return; }
+			m_vRows[_nRow][_nCol].sText = _sText;
+			m_vRows[_nRow][_nCol].nBadge = static_cast<uint8_t>(_kind);
+		}
 
 		size_t RowCount() const { return m_vRows.size(); }
 		size_t ColCount() const { return m_vCols.size(); }
 		int    SelectedRow() const { return m_nSelRow; }
 		void   SetSelectedRow(int _r) { m_nSelRow = _r; }
 
-		// 컬럼 너비 편집 API(설정창) — m_vCols 위임. 폭 단위 px, 최소 m_fMinColW 클램프.
+		// 컬럼 너비 편집 API(설정창) - m_vCols 위임. 폭 단위 px, 최소 m_fMinColW 클램프.
 		int          ColumnCount() const override { return static_cast<int>(m_vCols.size()); }
 		float        ColumnWidth(int _i) const override
 		{ return (_i >= 0 && _i < static_cast<int>(m_vCols.size())) ? m_vCols[_i].fWidth : 0.0f; }

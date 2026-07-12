@@ -35,7 +35,7 @@ namespace dxgui
 		void SetBorder(_DXG_COLOR _c, float _t) { m_BorderColor = _c; m_fBorderThickness = _t; }
 		void SetClipChildren(bool _b)           { m_bClipChildren = _b; }
 
-		// 자식 추가 — 소유권 이전. 반환 = 등록된 원시 포인터(설정/조회용, 소유 아님).
+		// 자식 추가 - 소유권 이전. 반환 = 등록된 원시 포인터(설정/조회용, 소유 아님).
 		C_DXG_WIDGET* Add(std::unique_ptr<C_DXG_WIDGET> _pChild)
 		{
 			C_DXG_WIDGET* p_ = _pChild.get();
@@ -62,7 +62,7 @@ namespace dxgui
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 		void RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin) override;
 
-		// 포커스 순회 — 가시 자식 전부 재귀 수집(추가 순서).
+		// 포커스 순회 - 가시 자식 전부 재귀 수집(추가 순서).
 		void CollectFocusable(std::vector<C_DXG_WIDGET*>& _out) override
 		{
 			if (!m_bVisible) { return; }
@@ -72,7 +72,7 @@ namespace dxgui
 			}
 		}
 
-		// 키 위젯 재귀 — 자식 우선(나중 추가=위, 역순=deepest), 미적중 시 패널 자신.
+		// 키 위젯 재귀 - 자식 우선(나중 추가=위, 역순=deepest), 미적중 시 패널 자신.
 		C_DXG_WIDGET* HitTestKeyed(float _x, float _y, _DXG_POINT _origin) override
 		{
 			if (!m_bVisible) { return nullptr; }

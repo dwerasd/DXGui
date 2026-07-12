@@ -90,6 +90,18 @@
     <ClInclude Include="DxgColorField.h">
       <Filter>위젯</Filter>
     </ClInclude>
+    <ClInclude Include="DxgCard.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
+    <ClInclude Include="DxgBadge.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
+    <ClInclude Include="DxgStatCard.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
+    <ClInclude Include="DxgNavList.h">
+      <Filter>위젯</Filter>
+    </ClInclude>
     <ClInclude Include="DxgOrderSink.h">
       <Filter>코어</Filter>
     </ClInclude>
@@ -141,6 +153,18 @@
       <Filter>위젯</Filter>
     </ClCompile>
     <ClCompile Include="DxgSpinner.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgCard.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgBadge.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgStatCard.cpp">
+      <Filter>위젯</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgNavList.cpp">
       <Filter>위젯</Filter>
     </ClCompile>
     <ClCompile Include="DxgColorField.cpp">

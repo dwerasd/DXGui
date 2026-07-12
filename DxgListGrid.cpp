@@ -10,7 +10,7 @@ namespace dxgui
 {
 	namespace
 	{
-		// 셀 비교 — 둘 다 완전 숫자면 수치, 아니면 문자열(wcscmp). 음수=a<b.
+		// 셀 비교 - 둘 다 완전 숫자면 수치, 아니면 문자열(wcscmp). 음수=a<b.
 		int cellCompare_(const std::wstring& _a, const std::wstring& _b)
 		{
 			const auto parseNum = [](const std::wstring& _s, double& _out) -> bool
@@ -79,7 +79,7 @@ namespace dxgui
 		_ctx.PopClipRect();
 	}
 
-	// 컬럼 유효폭 — stretch 모드면 마지막 컬럼은 남은 본문폭(나머지 합 제외)을 채운다(윈도우 ListView 식).
+	// 컬럼 유효폭 - stretch 모드면 마지막 컬럼은 남은 본문폭(나머지 합 제외)을 채운다(윈도우 ListView 식).
 	float C_DXG_LISTGRID::effColW_(int _c, float _fBodyW) const
 	{
 		const int nLast = static_cast<int>(m_vCols.size()) - 1;
@@ -105,7 +105,7 @@ namespace dxgui
 		const float fContentH = static_cast<float>(nRows) * m_fRowH;
 		const float fTotalColW = this->totalColW_();
 
-		// 스크롤 필요 판정(가로/세로 상호 의존 — 2회 수렴) + 본문 영역 산출.
+		// 스크롤 필요 판정(가로/세로 상호 의존 - 2회 수렴) + 본문 영역 산출.
 		bool bV = fContentH > fBodyH + 0.5f;
 		bool bH = !m_bStretchLast && fTotalColW > (abs_.w - (bV ? m_fScrollbarW : 0.0f)) + 0.5f;
 		bV = fContentH > (fBodyH - (bH ? m_fScrollbarW : 0.0f)) + 0.5f;
@@ -150,7 +150,7 @@ namespace dxgui
 			}
 		}
 
-		// 행 더블클릭 — 선택 갱신 후 콜백(차트반영/관심추가 등 호출처 동작). HTS 식.
+		// 행 더블클릭 - 선택 갱신 후 콜백(차트반영/관심추가 등 호출처 동작). HTS 식.
 		if (m_bEnabled && m_OnDblClick && _ctx.IsMouseDoubleClicked(DXG_MOUSE_LEFT) && _ctx.IsMouseHovered(bodyAbs_))
 		{
 			const float fMy = _ctx.GetMousePos().y;
@@ -158,7 +158,7 @@ namespace dxgui
 			if (r >= 0 && r < nRows) { m_nSelRow = r; m_OnDblClick(r); }
 		}
 
-		// 본문 우클릭 — 행 선택 후 콜백(컨텍스트 메뉴는 호출처 소유). HTS 식.
+		// 본문 우클릭 - 행 선택 후 콜백(컨텍스트 메뉴는 호출처 소유). HTS 식.
 		if (m_bEnabled && m_OnRightClick && _ctx.IsMouseClicked(DXG_MOUSE_RIGHT)
 			&& _ctx.IsMouseHovered(bodyAbs_))
 		{
@@ -169,7 +169,7 @@ namespace dxgui
 			m_OnRightClick(mp.x, mp.y);
 		}
 
-		// ── 본문(행) — 클립 후 가시 행만. 가로 스크롤 = 컬럼 x 를 -fScrollX 시프트 ──
+		// ── 본문(행) - 클립 후 가시 행만. 가로 스크롤 = 컬럼 x 를 -fScrollX 시프트 ──
 		if (fBodyVisH > 0.0f)
 		{
 			_ctx.PushClipRect(bodyAbs_);
@@ -198,7 +198,24 @@ namespace dxgui
 						{
 							_ctx.FillRect(_DXG_RECT(fCx, fRowY, fCw, m_fRowH), pCell->bgColor);
 						}
-						if (pCell != nullptr)
+						if (pCell != nullptr && pCell->nBadge != 255u && !pCell->sText.empty()
+							&& m_hFont != INVALID_FONT)
+						{
+							// 배지 셀 - pill(폭 = 텍스트폭 + 12px, 높이 = 행높이 - 6px). 컬럼 정렬을 따른다.
+							const _DXG_COLOR bcol = BadgeColor(static_cast<E_DXG_BADGE_KIND>(pCell->nBadge));
+							const _DXG_SIZE szb = _ctx.MeasureText(m_hFont, pCell->sText.c_str(), m_fFontScale);
+							const float fPh = m_fRowH - 6.0f;
+							const float fPw = szb.w + 12.0f;
+							float fPx = fCx + m_fCellPad;
+							if (m_vCols[c].align == DXG_TEXT_ALIGN_CENTER) { fPx = fCx + (fCw - fPw) * 0.5f; }
+							else if (m_vCols[c].align == DXG_TEXT_ALIGN_RIGHT) { fPx = fCx + fCw - fPw - m_fCellPad; }
+							const _DXG_RECT rcP(fPx, fRowY + 3.0f, fPw, fPh);
+							_ctx.FillRoundRect(rcP, fPh * 0.5f, ThemeTint(bcol));
+							_ctx.DrawText(m_hFont,
+								_DXG_POINT(rcP.x + (fPw - szb.w) * 0.5f, rcP.y + (fPh - szb.h) * 0.5f),
+								pCell->sText.c_str(), bcol, m_fFontScale);
+						}
+						else if (pCell != nullptr)
 						{
 							const _DXG_COLOR tcol = (r == m_nSelRow) ? m_SelText : pCell->textColor;
 							this->drawCellText_(_ctx, pCell->sText, tcol, fCx, fCw, fRowY, m_fRowH, m_vCols[c].align);

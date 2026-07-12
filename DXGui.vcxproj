@@ -262,6 +262,10 @@
     <ClInclude Include="DxgRadio.h" />
     <ClInclude Include="DxgSpinner.h" />
     <ClInclude Include="DxgColorField.h" />
+    <ClInclude Include="DxgCard.h" />
+    <ClInclude Include="DxgBadge.h" />
+    <ClInclude Include="DxgStatCard.h" />
+    <ClInclude Include="DxgNavList.h" />
     <ClInclude Include="DxgOrderSink.h" />
   </ItemGroup>
   <ItemGroup>
@@ -308,6 +312,18 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="DxgColorField.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgCard.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgBadge.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgStatCard.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="DxgNavList.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pch.cpp">

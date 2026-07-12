@@ -1,7 +1,7 @@
 ﻿// DxgWidget.h: GUI 위젯 추상 베이스(leaf). 컨테이너는 C_DXG_PANEL.
 // 위치/크기/키/표시명/폰트스케일/visible/enable 공통 + Render(IDrawContext&,_origin) virtual.
 // 콘크리트: C_DXG_LABEL / C_DXG_BUTTON / C_DXG_EDITBOX / C_DXG_CHECKBOX / C_DXG_PANEL.
-// 표시명(m_sName)은 wstring(UTF-16) — 설계 §7 wstring 단일.
+// 표시명(m_sName)은 wstring(UTF-16) - 설계 §7 wstring 단일.
 #pragma once
 
 #include "DxgTypes.h"
@@ -33,15 +33,19 @@ namespace dxgui
 		DXG_WIDGET_RADIO     = 12,
 		DXG_WIDGET_SPINNER   = 13,
 		DXG_WIDGET_COLORFIELD = 14,
+		DXG_WIDGET_CARD       = 15,
+		DXG_WIDGET_BADGE      = 16,
+		DXG_WIDGET_STATCARD   = 17,
+		DXG_WIDGET_NAVLIST    = 18,
 	};
 
 
 	// 위젯 추상 베이스. 좌표는 부모(패널) 원점 기준 px.
-	// 부모가 매 프레임 Render(ctx, _origin) 호출 — 위젯은 m_Rect 더해 절대 좌표 산출.
+	// 부모가 매 프레임 Render(ctx, _origin) 호출 - 위젯은 m_Rect 더해 절대 좌표 산출.
 	class C_DXG_WIDGET
 	{
 	protected:
-		std::string  m_sKey;        // 영속 키(ASCII) — 외부 영속 시 식별자
+		std::string  m_sKey;        // 영속 키(ASCII) - 외부 영속 시 식별자
 		std::wstring m_sName;       // 표시명(라벨/버튼 텍스트). UTF-16.
 		_DXG_RECT    m_Rect;        // 위치/크기(부모 원점 기준 px)
 		float        m_fFontScale;  // 1.0 = 기본
@@ -99,14 +103,14 @@ namespace dxgui
 		virtual const char* GetTypeName() const = 0;	// "label" / "button" / ...
 
 		// ── 렌더 / 입력 ──
-		// 부모가 _origin(절대 screen pos) 전달 — 위젯은 m_Rect 더해 절대 좌표.
+		// 부모가 _origin(절대 screen pos) 전달 - 위젯은 m_Rect 더해 절대 좌표.
 		virtual void Render(IDrawContext& _ctx, _DXG_POINT _origin) = 0;
 
-		// 오버레이 패스(2차) — 매니저가 전체 Render 후 호출. 콤보 드롭다운 등 최상위로
+		// 오버레이 패스(2차) - 매니저가 전체 Render 후 호출. 콤보 드롭다운 등 최상위로
 		// 떠야 하는(다른 위젯/패널 클립 위에 그려야 하는) 요소 전용. 기본 no-op.
 		virtual void RenderOverlay(IDrawContext& /*_ctx*/, _DXG_POINT /*_origin*/) {}
 
-		// 모달 활성(메뉴 등 열린 팝업) — 매니저가 true 면 pass1 위젯 입력을 캡처로 억제.
+		// 모달 활성(메뉴 등 열린 팝업) - 매니저가 true 면 pass1 위젯 입력을 캡처로 억제.
 		// 순수 오버레이 위젯(pass1 입력 없음)만 true 반환할 것. 기본 false.
 		virtual bool IsModalActive() const { return false; }
 
@@ -120,8 +124,8 @@ namespace dxgui
 			if (m_bVisible && m_bEnabled && this->AcceptsFocus()) { _out.push_back(this); }
 		}
 
-		// ── 디자인/설정 — 키 부여 위젯 재귀 탐색(컨테이너가 자식까지 내려감). ──
-		// HitTestKeyed: (_x,_y) 아래 가장 깊은 가시 키 위젯. CollectKeyed: 전 키 위젯(비활성 탭 포함 — 복원용).
+		// ── 디자인/설정 - 키 부여 위젯 재귀 탐색(컨테이너가 자식까지 내려감). ──
+		// HitTestKeyed: (_x,_y) 아래 가장 깊은 가시 키 위젯. CollectKeyed: 전 키 위젯(비활성 탭 포함 - 복원용).
 		virtual C_DXG_WIDGET* HitTestKeyed(float _x, float _y, _DXG_POINT _origin)
 		{
 			if (!m_bVisible || m_sKey.empty()) { return nullptr; }
