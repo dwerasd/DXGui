@@ -4,6 +4,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 #include <vector>
 #include <memory>
@@ -23,8 +24,8 @@ namespace dxgui
 
 	public:
 		C_DXG_PANEL()
-			: m_BgColor(0xFFF4F4F4u)
-			, m_BorderColor(0xFFB0B0B0u)
+			: m_BgColor(Theme().canvas)
+			, m_BorderColor(Theme().border)
 			, m_fBorderThickness(0.0f)
 			, m_bClipChildren(true)
 		{

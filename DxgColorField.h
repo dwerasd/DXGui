@@ -6,6 +6,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 #include <string>
 #include <functional>
@@ -40,9 +41,9 @@ namespace dxgui
 			, m_hFont(INVALID_FONT)
 			, m_nFocus(0)
 			, m_BorderColor(0xFF8896A8u)
-			, m_BorderOpenColor(0xFF236EE0u)
-			, m_PopupBgColor(0xFFFFFFFFu)
-			, m_TextColor(0xFF222838u)
+			, m_BorderOpenColor(Theme().accent)
+			, m_PopupBgColor(Theme().card)
+			, m_TextColor(Theme().textMain)
 		{
 		}
 

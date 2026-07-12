@@ -5,6 +5,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 #include <functional>
 
@@ -43,10 +44,10 @@ namespace dxgui
 			, m_hFont(INVALID_FONT)
 			, m_TextColor(0xFFFFFFFFu)
 			, m_TextHoverColor(0xFFFFFFFFu)
-			, m_BgColor(0xFF236EE0u)
-			, m_BgHoverColor(0xFF378BFFu)
-			, m_BgPressedColor(0xFF1A55B0u)
-			, m_BorderColor(0xFF1A55B0u)
+			, m_BgColor(Theme().accent)
+			, m_BgHoverColor(Theme().accentHover)
+			, m_BgPressedColor(Theme().accentPressed)
+			, m_BorderColor(Theme().accentPressed)
 			, m_fBorderThickness(0.0f)
 		{
 		}

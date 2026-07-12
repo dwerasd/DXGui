@@ -244,6 +244,7 @@
     <ClInclude Include="DxgTypes.h" />
     <ClInclude Include="DxgKeys.h" />
     <ClInclude Include="DxgDrawContext.h" />
+    <ClInclude Include="DxgTheme.h" />
     <ClInclude Include="DxgWidget.h" />
     <ClInclude Include="DxgLabel.h" />
     <ClInclude Include="DxgButton.h" />
@@ -263,6 +264,9 @@
     <ClInclude Include="DxgOrderSink.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DxgTheme.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="DxgLabel.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>

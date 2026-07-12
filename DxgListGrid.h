@@ -5,6 +5,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 #include "DxgScrollbar.h"
 
 #include <vector>
@@ -34,7 +35,7 @@ namespace dxgui
 		_DXG_COLOR   textColor;
 		_DXG_COLOR   bgColor;
 
-		_DXG_GRID_CELL() : textColor(0xFF222838u), bgColor(0u) {}
+		_DXG_GRID_CELL() : textColor(Theme().textMain), bgColor(0u) {}
 	};
 
 

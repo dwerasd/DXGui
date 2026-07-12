@@ -4,6 +4,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 
 namespace dxgui
@@ -19,7 +20,7 @@ namespace dxgui
 
 	public:
 		C_DXG_LABEL()
-			: m_Color(0xFF222838u)
+			: m_Color(Theme().textMain)
 			, m_Align(DXG_TEXT_ALIGN_LEFT)
 			, m_VAlign(DXG_VALIGN_TOP)
 			, m_hFont(INVALID_FONT)

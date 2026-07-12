@@ -36,6 +36,9 @@
     <ClInclude Include="DxgDrawContext.h">
       <Filter>코어</Filter>
     </ClInclude>
+    <ClInclude Include="DxgTheme.h">
+      <Filter>코어</Filter>
+    </ClInclude>
     <ClInclude Include="DxgWidget.h">
       <Filter>코어</Filter>
     </ClInclude>
@@ -94,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DxgTheme.cpp">
+      <Filter>코어</Filter>
     </ClCompile>
     <ClCompile Include="DxgLabel.cpp">
       <Filter>위젯</Filter>

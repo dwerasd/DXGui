@@ -4,6 +4,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 #include <vector>
 #include <string>
@@ -39,12 +40,12 @@ namespace dxgui
 			, m_fTabH(28.0f), m_fTabPad(16.0f), m_fMinTabW(48.0f)
 			, m_StripBg(0xFFEDF1F6u)
 			, m_TabBg(0xFFE2E8F0u)
-			, m_TabActiveBg(0xFFFFFFFFu)
+			, m_TabActiveBg(Theme().card)
 			, m_TabText(0xFF5A6678u)
-			, m_TabActiveText(0xFF1A55B0u)
-			, m_Accent(0xFF236EE0u)
+			, m_TabActiveText(Theme().accentPressed)
+			, m_Accent(Theme().accent)
 			, m_Border(0xFFB8C2D0u)
-			, m_ContentBg(0xFFFFFFFFu)
+			, m_ContentBg(Theme().card)
 		{
 		}
 

@@ -3,6 +3,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 #include <functional>
 
@@ -27,9 +28,9 @@ namespace dxgui
 		C_DXG_CHECKBOX()
 			: m_pData(nullptr)
 			, m_hFont(INVALID_FONT)
-			, m_TextColor(0xFF222838u)
-			, m_BoxBgColor(0xFFFFFFFFu)
-			, m_BoxCheckColor(0xFF236EE0u)
+			, m_TextColor(Theme().textMain)
+			, m_BoxBgColor(Theme().card)
+			, m_BoxCheckColor(Theme().accent)
 			, m_BoxBorderColor(0xFF1A2638u)   // 거의 검정에 가까운 진한 색
 			, m_fBoxSize(18.0f)
 		{

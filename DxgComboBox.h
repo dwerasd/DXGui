@@ -4,6 +4,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 #include <vector>
 #include <string>
@@ -45,12 +46,12 @@ namespace dxgui
 			, m_fItemH(24.0f)
 			, m_fCellPad(6.0f)
 			, m_fScrollY(0.0f)
-			, m_BgColor(0xFFFFFFFFu)
-			, m_TextColor(0xFF222838u)
+			, m_BgColor(Theme().card)
+			, m_TextColor(Theme().textMain)
 			, m_BorderColor(0xFF8896A8u)
-			, m_BorderOpenColor(0xFF236EE0u)
+			, m_BorderOpenColor(Theme().accent)
 			, m_ArrowColor(0xFF5A6678u)
-			, m_DropBgColor(0xFFFFFFFFu)
+			, m_DropBgColor(Theme().card)
 			, m_ItemHoverBg(0xFFEAF1FBu)
 			, m_ItemSelBg(0xFFD6E4FFu)
 		{

@@ -7,6 +7,7 @@
 
 #include "DxgWidget.h"
 #include "DxgDrawContext.h"
+#include "DxgTheme.h"
 
 #include <string>
 #include <functional>
@@ -54,10 +55,10 @@ namespace dxgui
 			, m_pData(nullptr)
 			, m_uTextMax(255)
 			, m_hFont(INVALID_FONT)
-			, m_TextColor(0xFF222838u)
-			, m_BgColor(0xFFFFFFFFu)
+			, m_TextColor(Theme().textMain)
+			, m_BgColor(Theme().card)
 			, m_BorderColor(0xFF8896A8u)
-			, m_BorderFocusColor(0xFF236EE0u)
+			, m_BorderFocusColor(Theme().accent)
 			, m_bFocused(false)
 			, m_uCaret(0)
 			, m_uSelAnchor(0)
