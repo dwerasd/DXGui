@@ -24,8 +24,8 @@ namespace dxgui
 	{
 	private:
 		E_DXG_BUTTON_STYLE m_Style;
-		E_DXG_TEXT_ALIGN   m_Align;               // 가로 정렬 — MENU_TEXT 기본 LEFT, NORMAL 기본 CENTER
-		E_DXG_VTEXT_ALIGN  m_VAlign;              // 세로 정렬 — 기본 CENTER
+		E_DXG_TEXT_ALIGN   m_Align;               // 가로 정렬 - MENU_TEXT 기본 LEFT, NORMAL 기본 CENTER
+		E_DXG_VTEXT_ALIGN  m_VAlign;              // 세로 정렬 - 기본 CENTER
 		FontHandle         m_hFont;
 		_DXG_COLOR         m_TextColor;
 		_DXG_COLOR         m_TextHoverColor;
@@ -35,6 +35,13 @@ namespace dxgui
 		_DXG_COLOR         m_BorderColor;
 		float              m_fBorderThickness;
 		std::function<void()> m_OnClick;
+
+		// 아이콘(MDL2 글리프). 0 = 없음. 폰트는 최초 렌더 시 지연 등록(px 변경 시 재등록).
+		wchar_t            m_cIcon;
+		_DXG_COLOR         m_IconColor;
+		float              m_fIconPx;			// 0 = 텍스트 폰트 높이 추종
+		FontHandle         m_hIconFont;
+		uint32_t           m_uIconFontPx;		// 등록된 아이콘 폰트의 px(캐시 키)
 
 	public:
 		C_DXG_BUTTON()
@@ -49,6 +56,11 @@ namespace dxgui
 			, m_BgPressedColor(Theme().accentPressed)
 			, m_BorderColor(Theme().accentPressed)
 			, m_fBorderThickness(0.0f)
+			, m_cIcon(0)
+			, m_IconColor(0xFFFFFFFFu)
+			, m_fIconPx(0.0f)
+			, m_hIconFont(INVALID_FONT)
+			, m_uIconFontPx(0u)
 		{
 		}
 
@@ -56,7 +68,7 @@ namespace dxgui
 		void SetStyle(E_DXG_BUTTON_STYLE _s)
 		{
 			m_Style = _s;
-			// MENU_TEXT 는 좌측 정렬 기본 — Set 직후 SetAlign 호출 시 그 값 우선.
+			// MENU_TEXT 는 좌측 정렬 기본 - Set 직후 SetAlign 호출 시 그 값 우선.
 			m_Align = (_s == DXG_BTN_STYLE_MENU_TEXT) ? DXG_TEXT_ALIGN_LEFT : DXG_TEXT_ALIGN_CENTER;
 		}
 		void SetAlign(E_DXG_TEXT_ALIGN _a)          { m_Align = _a; }
@@ -70,6 +82,17 @@ namespace dxgui
 		void SetBorder(_DXG_COLOR _c, float _t)     { m_BorderColor = _c; m_fBorderThickness = _t; }
 		void SetOnClick(std::function<void()> _fn)  { m_OnClick = std::move(_fn); }
 
+		// 아이콘(DxgIcons.h 의 MDL2 글리프). _fIconPx=0 이면 텍스트 폰트 높이 추종.
+		// 렌더는 [아이콘][4px][텍스트] 수평 그룹을 기존 정렬 규칙 안에 배치(텍스트 비면 아이콘 단독).
+		void SetIcon(wchar_t _cGlyph, _DXG_COLOR _iconColor, float _fIconPx = 0.0f)
+		{
+			m_cIcon = _cGlyph;
+			m_IconColor = _iconColor;
+			m_fIconPx = _fIconPx;
+		}
+		void SetIconColor(_DXG_COLOR _c)            { m_IconColor = _c; }
+		wchar_t GetIcon() const                     { return m_cIcon; }
+
 		E_DXG_BUTTON_STYLE GetStyle()  const        { return m_Style; }
 		E_DXG_TEXT_ALIGN   GetAlign()  const        { return m_Align; }
 		E_DXG_VTEXT_ALIGN  GetVAlign() const        { return m_VAlign; }
@@ -79,7 +102,7 @@ namespace dxgui
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_BUTTON; }
 		const char*       GetTypeName() const override { return "button"; }
 
-		// 렌더 + 입력 처리 — hover/press/click 판정 후 onClick 호출.
+		// 렌더 + 입력 처리 - hover/press/click 판정 후 onClick 호출.
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 	};
 

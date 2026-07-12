@@ -1,5 +1,6 @@
 ﻿// DxgButton.cpp
 #include "DxgButton.h"
+#include "DxgIcons.h"
 
 
 namespace dxgui
@@ -26,20 +27,62 @@ namespace dxgui
 			}
 		}
 
-		// ── 텍스트 ──
-		// 가로/세로 정렬은 m_Align / m_VAlign 으로 일반화.
-		// (스타일별 default: NORMAL=CENTER/CENTER, MENU_TEXT=LEFT/CENTER — SetStyle 에서 세팅.)
-		if (!m_sName.empty() && m_hFont != INVALID_FONT)
+		// ── 아이콘 폰트 지연 등록 ──
+		// RegisterFont 는 호출마다 엔트리를 추가한다(중복 제거 없음). 프레임마다 등록하면 누적되므로
+		// 위젯당 1회만 등록하고, px 가 바뀔 때만 재등록한다.
+		float fIconW_ = 0.0f;
+		float fIconH_ = 0.0f;
+		const wchar_t szIcon_[2] = { m_cIcon, L'\0' };
+		if (m_cIcon != 0)
 		{
-			const _DXG_SIZE sz_ = _ctx.MeasureText(m_hFont, m_sName.c_str(), m_fFontScale);
-			float fTX_ = abs_.x;
-			if (m_Align == DXG_TEXT_ALIGN_CENTER) { fTX_ += (abs_.w - sz_.w) * 0.5f; }
-			else if (m_Align == DXG_TEXT_ALIGN_RIGHT) { fTX_ += (abs_.w - sz_.w); }
+			float fPx_ = m_fIconPx;
+			if (fPx_ <= 0.0f)
+			{
+				fPx_ = (m_hFont != INVALID_FONT) ? _ctx.GetFontHeight(m_hFont, m_fFontScale) : 16.0f;
+			}
+			const uint32_t uPx_ = static_cast<uint32_t>(fPx_ + 0.5f);
+			if (m_hIconFont == INVALID_FONT || m_uIconFontPx != uPx_)
+			{
+				m_hIconFont = _ctx.RegisterFont(icons::Face, uPx_, false);
+				m_uIconFontPx = uPx_;
+			}
+			if (m_hIconFont != INVALID_FONT)
+			{
+				const _DXG_SIZE szi_ = _ctx.MeasureText(m_hIconFont, szIcon_, 1.0f);
+				fIconW_ = szi_.w;
+				fIconH_ = szi_.h;
+			}
+		}
+
+		// ── 아이콘 + 텍스트 ──
+		// [아이콘][4px][텍스트] 수평 그룹을 기존 정렬 규칙(m_Align/m_VAlign) 안에 배치.
+		// 아이콘이 없으면 그룹 = 텍스트 단독이라 기존 배치와 바이트 동일.
+		const bool bText_ = (!m_sName.empty() && m_hFont != INVALID_FONT);
+		_DXG_SIZE szT_(0.0f, 0.0f);
+		if (bText_) { szT_ = _ctx.MeasureText(m_hFont, m_sName.c_str(), m_fFontScale); }
+
+		const float fGap_  = (fIconW_ > 0.0f && bText_) ? 4.0f : 0.0f;
+		const float fGrpW_ = fIconW_ + fGap_ + szT_.w;
+
+		float fGX_ = abs_.x;
+		if (m_Align == DXG_TEXT_ALIGN_CENTER) { fGX_ += (abs_.w - fGrpW_) * 0.5f; }
+		else if (m_Align == DXG_TEXT_ALIGN_RIGHT) { fGX_ += (abs_.w - fGrpW_); }
+
+		if (fIconW_ > 0.0f)
+		{
+			float fIY_ = abs_.y;
+			if (m_VAlign == DXG_VALIGN_CENTER) { fIY_ += (abs_.h - fIconH_) * 0.5f; }
+			else if (m_VAlign == DXG_VALIGN_BOTTOM) { fIY_ += (abs_.h - fIconH_); }
+			_ctx.DrawText(m_hIconFont, _DXG_POINT(fGX_, fIY_), szIcon_, m_IconColor, 1.0f);
+		}
+
+		if (bText_)
+		{
 			float fTY_ = abs_.y;
-			if (m_VAlign == DXG_VALIGN_CENTER) { fTY_ += (abs_.h - sz_.h) * 0.5f; }
-			else if (m_VAlign == DXG_VALIGN_BOTTOM) { fTY_ += (abs_.h - sz_.h); }
+			if (m_VAlign == DXG_VALIGN_CENTER) { fTY_ += (abs_.h - szT_.h) * 0.5f; }
+			else if (m_VAlign == DXG_VALIGN_BOTTOM) { fTY_ += (abs_.h - szT_.h); }
 			const _DXG_COLOR col_ = bHover_ ? m_TextHoverColor : m_TextColor;
-			_ctx.DrawText(m_hFont, _DXG_POINT(fTX_, fTY_),
+			_ctx.DrawText(m_hFont, _DXG_POINT(fGX_ + fIconW_ + fGap_, fTY_),
 				m_sName.c_str(), col_, m_fFontScale);
 		}
 
