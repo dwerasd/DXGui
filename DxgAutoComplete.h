@@ -1,9 +1,11 @@
 ﻿// DxgAutoComplete.h: 자동완성 입력 위젯 - 에디트박스 + 후보 드롭다운.
 // 편집·캐럿·IME·클립보드는 C_DXG_EDITBOX 상속분 그대로. 타이핑할 때마다 Provider 로
 // 후보를 받아 에디트 아래(공간 부족 시 위)에 목록을 띄우고 위/아래 키·Enter·마우스로 확정한다.
-// 드롭다운 렌더는 오버레이 패스(최상위). 열린 동안 모달이라 매니저가 pass1 마우스 입력을
-// 캡처한다 - 콤보 선례와 같은 대가로, 열린 동안 에디트 본문의 마우스 편집(캐럿 이동·드래그
-// 선택)이 억제된다. 키보드·IME 는 영향 없음.
+// 드롭다운 렌더는 오버레이 패스(최상위). 모달은 **마우스가 드롭다운 사각형 위에 있는 프레임**
+// 으로 한정한다 - 그 프레임만 매니저가 pass1 입력을 캡처해 드롭다운에 가린 위젯의 클릭 누수를
+// 막고, 창의 나머지(조회 버튼·다른 위젯·Tab 순회·에디트 캐럿/드래그)는 목록이 열려 있어도
+// 정상 동작한다. 콤보는 클릭으로 열려 창 전체 캡처가 자연스럽지만 자동완성은 타이핑만으로
+// 열리므로 같은 대가를 물리면 입력 직후 창 전체가 먹통이 된다. 키보드·IME 는 영향 없음.
 // 루트 위젯으로만 등록할 것(모달 판정이 루트만 본다).
 #pragma once
 
@@ -35,6 +37,7 @@ namespace dxgui
 		int   m_nSel;					// 드롭다운 선택 인덱스(-1 = 없음)
 		bool  m_bOpen;
 		bool  m_bJustOpened;			// 연 프레임 표식 - 오버레이의 외부클릭 닫기를 1프레임 무시
+		bool  m_bHoverDropLast;			// 직전 프레임 오버레이에서 마우스가 드롭다운 위였나(모달 범위 판정)
 		bool  m_bScrollToSel;			// 위/아래 키 이동 후 선택항목 가시화 요청(높이는 오버레이가 안다)
 		int   m_nMaxVisible;
 		float m_fItemH;
@@ -73,8 +76,9 @@ namespace dxgui
 		// 타입은 EDITBOX 유지(직렬화/영속 소비자 호환). 표시명만 구분.
 		const char* GetTypeName() const override { return "autocomplete"; }
 
-		// 열린 동안 모달 - 매니저가 pass1 입력을 캡처해 아래 위젯으로의 클릭 누수를 막는다.
-		bool IsModalActive() const override { return m_bOpen; }
+		// 드롭다운 위에 마우스가 있는 동안만 모달 - 매니저가 그 프레임의 pass1 입력을 캡처해
+		// 드롭다운에 가린 위젯으로의 클릭 누수를 막는다. 판정값은 직전 프레임 오버레이가 기록한다.
+		bool IsModalActive() const override { return m_bOpen && m_bHoverDropLast; }
 
 		void Render(IDrawContext& _ctx, _DXG_POINT _origin) override;
 		void RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin) override;

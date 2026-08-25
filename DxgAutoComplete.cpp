@@ -10,6 +10,7 @@ namespace dxgui
 		: m_nSel(-1)
 		, m_bOpen(false)
 		, m_bJustOpened(false)
+		, m_bHoverDropLast(false)
 		, m_bScrollToSel(false)
 		, m_nMaxVisible(8)
 		, m_fItemH(24.0f)
@@ -32,6 +33,7 @@ namespace dxgui
 	{
 		m_bOpen = false;
 		m_bJustOpened = false;
+		m_bHoverDropLast = false;
 		m_bScrollToSel = false;
 		m_nSel = -1;
 		m_fScrollY = 0.0f;
@@ -104,6 +106,10 @@ namespace dxgui
 
 	void C_DXG_AUTOCOMPLETE::Render(IDrawContext& _ctx, _DXG_POINT _origin)
 	{
+		// 연 프레임 표식은 여기서 소비한다 - 오버레이(같은 프레임 pass2)에서 지우면 연 프레임
+		// 안에서 즉시 소진돼 가드가 성립하지 않는다. refresh_ 는 이 아래 Render 말미에서 세운다.
+		m_bJustOpened = false;
+
 		// 위/아래/Esc 는 베이스보다 먼저 처리한다 - 베이스 Render 가 같은 프레임에 Enter 를
 		// 소화하므로(커밋 후 콜백) 선택 인덱스가 그 전에 확정돼 있어야 한다.
 		if (m_bVisible && m_bEnabled && m_bOpen && this->Focused_())
@@ -152,7 +158,8 @@ namespace dxgui
 
 	void C_DXG_AUTOCOMPLETE::RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin)
 	{
-		if (!m_bVisible || !m_bOpen || m_vItems.empty()) { return; }
+		// 그리지 않는 프레임은 모달도 아니다(호버 표식이 낡은 채 남으면 pass1 이 계속 캡처된다).
+		if (!m_bVisible || !m_bOpen || m_vItems.empty()) { m_bHoverDropLast = false; return; }
 
 		const _DXG_RECT abs_ = this->AbsRect(_origin);
 		const int   n_      = static_cast<int>(m_vItems.size());
@@ -176,6 +183,7 @@ namespace dxgui
 		const float fDropH_ = m_fItemH * static_cast<float>(nVis_);
 		const float fDropY_ = bUp_ ? (abs_.y - fDropH_) : (abs_.y + abs_.h);
 		const _DXG_RECT dd_(abs_.x, fDropY_, abs_.w, fDropH_);
+		const bool bHoverDrop_ = _ctx.IsMouseHovered(dd_);	// 모달 범위 판정 + 밖-클릭 판정 공용
 
 		// 스크롤(휠 + 키 선택 추종). 노치당 3행.
 		const float fMaxScroll_ = fFullH_ - fDropH_;
@@ -237,18 +245,17 @@ namespace dxgui
 			return;
 		}
 
-		// 드롭다운 밖 클릭 -> 닫기. 연 프레임은 1프레임 무시(즉시 닫힘 방지).
-		if (m_bJustOpened)
-		{
-			m_bJustOpened = false;
-		}
-		else if (m_bEnabled && _ctx.IsMouseReleased(DXG_MOUSE_LEFT) && !_ctx.IsMouseHovered(dd_))	// UP 구동
+		// 드롭다운 밖 클릭 -> 닫기. 연 프레임은 무시한다(즉시 닫힘 방지) - 표식 소비는 다음 프레임 Render.
+		if (!m_bJustOpened && m_bEnabled && _ctx.IsMouseReleased(DXG_MOUSE_LEFT) && !bHoverDrop_)	// UP 구동
 		{
 			this->close_();
-			// 에디트 본문 밖까지 나간 클릭이면 커밋 + 포커스 해제까지 여기서 대행한다.
-			// (열린 동안 모달 캡처라 pass1 의 밖-클릭 해제 경로가 동작하지 않는다.)
+			// 에디트 본문 밖까지 나간 클릭이면 커밋 + 포커스 해제까지 여기서 대행한다
+			// (드롭다운 위 프레임의 모달 캡처로 pass1 밖-클릭 해제 경로가 막힐 수 있다).
 			if (!_ctx.IsMouseHovered(abs_)) { this->SetFocused(false); }
+			return;	// close_ 가 표식을 내렸다 - 아래 기록으로 되살리지 않는다
 		}
+
+		m_bHoverDropLast = bHoverDrop_;	// 다음 프레임 모달 판정용(닫히면 close_ 가 내린다)
 	}
 
 } // namespace dxgui
