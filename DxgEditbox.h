@@ -49,6 +49,19 @@ namespace dxgui
 		E_DXG_TEXT_ALIGN m_eTextAlign;    // 텍스트 가로정렬(기본 좌). 텍스트가 박스보다 짧을 때만 적용.
 		std::function<void()> m_OnEnter;  // 엔터 커밋 콜백(없으면 무시)
 
+	protected:
+		// 파생 위젯(자동완성 등)이 편집 상태를 읽고 텍스트를 프로그램적으로 확정하기 위한 접근자.
+		// 데이터 멤버 추가 없음 - 클래스 크기·기존 시그니처 불변(스테일 lib 소비자 보호).
+		const std::wstring& Buffer_() const { return m_sBuffer; }
+		bool       Focused_() const { return m_bFocused; }
+		size_t     Caret_() const   { return m_uCaret; }
+		FontHandle Font_() const    { return m_hFont; }
+		// 파생 위젯의 프로그램적 텍스트 치환(자동완성 확정) - 버퍼·캐럿·선택·바인딩을 함께 맞춘다.
+		void SetBufferAndCommit_(const std::wstring& _sText)
+		{ m_sBuffer = _sText; m_uCaret = m_sBuffer.size(); m_uSelAnchor = m_uCaret; StringToData_(); }
+		// 표시 문자열 → 바인딩 변수 (편집 종료 / 엔터).
+		void StringToData_();
+
 	public:
 		C_DXG_EDITBOX()
 			: m_DataType(DXG_EDIT_INT32)
@@ -109,8 +122,6 @@ namespace dxgui
 	private:
 		// 바인딩 변수 → 표시 문자열 (편집 시작/포커스 종료 시 동기).
 		std::wstring DataToString_() const;
-		// 표시 문자열 → 바인딩 변수 (편집 종료 / 엔터).
-		void StringToData_();
 		// YMD 버퍼 정규화 — 숫자만 추출 후 "YYYY-MM-DD" 형식 재구성.
 		void NormalizeYmdBuffer_();
 	};

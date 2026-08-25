@@ -16,5 +16,8 @@ namespace dxgui
 	inline constexpr int DXG_VK_DELETE = 0x2E;	// VK_DELETE
 	inline constexpr int DXG_VK_HOME   = 0x24;	// VK_HOME
 	inline constexpr int DXG_VK_END    = 0x23;	// VK_END
+	inline constexpr int DXG_VK_UP     = 0x26;	// VK_UP
+	inline constexpr int DXG_VK_DOWN   = 0x28;	// VK_DOWN
+	inline constexpr int DXG_VK_ESCAPE = 0x1B;	// VK_ESCAPE
 
 } // namespace dxgui
