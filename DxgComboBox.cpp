@@ -4,8 +4,9 @@
 
 namespace dxgui
 {
-	// 호스트가 매 프레임 설정하는 캔버스(클라이언트, DIP) 높이 정의(선언=DxgDrawContext.h extern).
+	// 호스트가 매 프레임 설정하는 캔버스(클라이언트, DIP) 크기 정의(선언=DxgDrawContext.h extern).
 	float g_fOverlayCanvasH = 0.0f;
+	float g_fOverlayCanvasW = 0.0f;
 
 	void C_DXG_COMBOBOX::drawTextClip_(IDrawContext& _ctx, const std::wstring& _s,
 		float _x, float _w, float _top, float _h, _DXG_COLOR _color)

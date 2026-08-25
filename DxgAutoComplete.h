@@ -1,6 +1,9 @@
 ﻿// DxgAutoComplete.h: 자동완성 입력 위젯 - 에디트박스 + 후보 드롭다운.
 // 편집·캐럿·IME·클립보드는 C_DXG_EDITBOX 상속분 그대로. 타이핑할 때마다 Provider 로
 // 후보를 받아 에디트 아래(공간 부족 시 위)에 목록을 띄우고 위/아래 키·Enter·마우스로 확정한다.
+// 드롭다운 기하: 폭 = max(에디트 폭, 최장 항목 텍스트 + 좌우 여백 + 스크롤바) 를 캔버스 폭으로
+// 클램프하고 오른쪽으로 넘치면 왼쪽으로 민다 - 에디트가 좁아도(차트 헤더 100px) 항목이 읽힌다.
+// 항목 폭 측정은 후보가 바뀐 프레임에만 1회 수행한다(매 프레임 측정 금지).
 // 드롭다운 렌더는 오버레이 패스(최상위). 모달은 **마우스가 드롭다운 사각형 위에 있는 프레임**
 // 으로 한정한다 - 그 프레임만 매니저가 pass1 입력을 캡처해 드롭다운에 가린 위젯의 클릭 누수를
 // 막고, 창의 나머지(조회 버튼·다른 위젯·Tab 순회·에디트 캐럿/드래그)는 목록이 열려 있어도
@@ -39,10 +42,12 @@ namespace dxgui
 		bool  m_bJustOpened;			// 연 프레임 표식 - 오버레이의 외부클릭 닫기를 1프레임 무시
 		bool  m_bHoverDropLast;			// 직전 프레임 오버레이에서 마우스가 드롭다운 위였나(모달 범위 판정)
 		bool  m_bScrollToSel;			// 위/아래 키 이동 후 선택항목 가시화 요청(높이는 오버레이가 안다)
+		bool  m_bItemsWDirty;			// 후보가 바뀌어 최장 항목 폭 재측정이 필요한가(측정은 오버레이가 1회)
 		int   m_nMaxVisible;
 		float m_fItemH;
 		float m_fCellPad;
 		float m_fScrollY;
+		float m_fItemsMaxW;				// 최장 항목 텍스트 폭(px) - 드롭다운 폭 산출용 캐시
 
 		_DXG_COLOR m_DropBgColor;
 		_DXG_COLOR m_DropBorderColor;

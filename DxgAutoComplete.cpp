@@ -12,10 +12,12 @@ namespace dxgui
 		, m_bJustOpened(false)
 		, m_bHoverDropLast(false)
 		, m_bScrollToSel(false)
+		, m_bItemsWDirty(false)
 		, m_nMaxVisible(8)
 		, m_fItemH(24.0f)
 		, m_fCellPad(6.0f)
 		, m_fScrollY(0.0f)
+		, m_fItemsMaxW(0.0f)
 		, m_DropBgColor(Theme().card)
 		, m_DropBorderColor(Theme().accent)
 		, m_ItemTextColor(Theme().textMain)
@@ -38,6 +40,8 @@ namespace dxgui
 		m_nSel = -1;
 		m_fScrollY = 0.0f;
 		m_vItems.clear();
+		m_fItemsMaxW = 0.0f;
+		m_bItemsWDirty = false;
 	}
 
 
@@ -64,6 +68,7 @@ namespace dxgui
 		}
 		m_bOpen = true;
 		m_bJustOpened = true;
+		m_bItemsWDirty = true;	// 실제 측정은 컨텍스트가 있는 오버레이에서 1회
 	}
 
 
@@ -182,12 +187,44 @@ namespace dxgui
 		if (nVis_ > m_nMaxVisible) { nVis_ = m_nMaxVisible; }
 		const float fDropH_ = m_fItemH * static_cast<float>(nVis_);
 		const float fDropY_ = bUp_ ? (abs_.y - fDropH_) : (abs_.y + abs_.h);
-		const _DXG_RECT dd_(abs_.x, fDropY_, abs_.w, fDropH_);
+
+		// 스크롤 필요 여부를 폭보다 먼저 정한다 - 스크롤바 폭이 드롭다운 폭에 포함된다.
+		const float fMaxScroll_ = fFullH_ - fDropH_;
+		const bool  bScroll_    = fMaxScroll_ > 0.5f;
+		const float fBarW_      = bScroll_ ? 6.0f : 0.0f;	// 스크롤바 폭(있을 때만)
+
+		// 최장 항목 폭 - 후보가 바뀐 프레임에만 1회 측정한다(폰트 미등록이면 다음 프레임으로 미룬다).
+		if (m_bItemsWDirty && this->Font_() != INVALID_FONT)
+		{
+			m_fItemsMaxW = 0.0f;
+			for (const _DXG_AC_ITEM& item_ : m_vItems)
+			{
+				if (item_.sText.empty()) { continue; }
+				const float fW_ = _ctx.MeasureText(this->Font_(), item_.sText.c_str(), m_fFontScale).w;
+				if (fW_ > m_fItemsMaxW) { m_fItemsMaxW = fW_; }
+			}
+			m_bItemsWDirty = false;
+		}
+
+		// 폭 = max(에디트 폭, 최장 항목 + 좌우 여백 + 스크롤바). 캔버스 폭(주입 시)으로 클램프하고
+		// 오른쪽으로 넘치면 왼쪽으로 민다. g_fOverlayCanvasW<=0(미주입) 이면 가로 클램프 없음.
+		float fDropW_ = m_fItemsMaxW + m_fCellPad * 2.0f + fBarW_;
+		if (fDropW_ < abs_.w) { fDropW_ = abs_.w; }
+		float fDropX_ = abs_.x;
+		const float fCanvasW_ = g_fOverlayCanvasW;
+		if (fCanvasW_ > 0.0f)
+		{
+			if (fDropW_ > fCanvasW_) { fDropW_ = fCanvasW_; }
+			if (abs_.x + fDropW_ > fCanvasW_)
+			{
+				fDropX_ = fCanvasW_ - fDropW_;
+				if (fDropX_ < 0.0f) { fDropX_ = 0.0f; }
+			}
+		}
+		const _DXG_RECT dd_(fDropX_, fDropY_, fDropW_, fDropH_);
 		const bool bHoverDrop_ = _ctx.IsMouseHovered(dd_);	// 모달 범위 판정 + 밖-클릭 판정 공용
 
 		// 스크롤(휠 + 키 선택 추종). 노치당 3행.
-		const float fMaxScroll_ = fFullH_ - fDropH_;
-		const bool  bScroll_    = fMaxScroll_ > 0.5f;
 		if (bScroll_)
 		{
 			const float fWheel_ = _ctx.GetWheelDelta();
@@ -206,7 +243,6 @@ namespace dxgui
 		_ctx.FillRect(dd_, m_DropBgColor);
 		_ctx.DrawRectOutline(dd_, m_DropBorderColor, 1.0f);
 
-		const float fBarW_  = bScroll_ ? 6.0f : 0.0f;	// 스크롤바 폭(있을 때만)
 		const float fItemW_ = dd_.w - fBarW_;
 
 		int nClick_ = -1;
