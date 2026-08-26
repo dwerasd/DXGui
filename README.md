@@ -28,6 +28,9 @@
 - 위젯 타입은 `E_DXG_WIDGET_TYPE`(`DxgWidget.h`)로 식별되며, 좌표계는
   float px(부모 원점 기준), 색은 32비트 ARGB, 문자열은 UTF-16(`wchar_t`)로
   통일되어 있다
+- `dxgui::IOrderSink`(`DxgOrderSink.h`) — 주문 라우팅 추상 인터페이스(페이퍼/실주문
+  전환용). 현재 이 저장소의 어떤 위젯·소스에서도 include/사용되지 않는
+  독립 정의로, 향후 주문 위젯 도입을 위한 선배치 상태다
 
 ## 렌더링 백엔드
 
@@ -38,7 +41,9 @@ DX11 백엔드는 `DxgDrawContext.h` 주석상 "향후(C_DRAW_CONTEXT_DX11, DX11
 
 ## 스택
 
-- C++20(Debug/Release) / C++Latest(ReleaseMD) — MSVC v145 툴셋
+- C++20(Debug/Release, ReleaseMD|Win32) / C++Latest(ReleaseMD|x64) — MSVC v145
+  툴셋(`DXGui.vcxproj`). ReleaseMD|x64 만 PCH 미사용 + AVX2 활성화 + 버퍼
+  보안검사(`/GS`) 비활성으로 별도 튜닝됨
 - Win32 / x64 정적 라이브러리(StaticLibrary) 프로젝트(`DXGui.vcxproj`)
 - 표준 라이브러리(`<string>`, `<vector>`, `<memory>`)만 사용, Windows/D2D/D3D
   헤더는 이 프로젝트에서 직접 포함하지 않음(`DxgDrawContext.h` 주석)
