@@ -65,6 +65,7 @@ namespace dxgui
 		bool  Needed() const { return m_fContentH > m_fViewportH + 0.5f; }
 
 		float GetValue() const { return m_fValue; }
+		float ViewportH() const { return m_fViewportH; }
 		void  SetValue(float _v) { m_fValue = _v; this->clampValue_(); }
 		void  ScrollBy(float _dPx) { this->SetValue(m_fValue + _dPx); }
 

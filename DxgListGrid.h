@@ -137,6 +137,18 @@ namespace dxgui
 		size_t ColCount() const { return m_vCols.size(); }
 		int    SelectedRow() const { return m_nSelRow; }
 		void   SetSelectedRow(int _r) { m_nSelRow = _r; }
+		// 행을 본문 안으로 즉시 스크롤한다. 행을 막 다시 채운 직후에도 맞도록 현재 행 수로 세로 범위를 먼저 다시 맞춘다
+		// (가로 스크롤바가 없는 격자 전제 - SetStretchLastColumn(true)).
+		void   ScrollToRow(int _nRow)
+		{
+			if (_nRow < 0 || _nRow >= static_cast<int>(m_vRows.size()) || m_fRowH <= 0.0f) { return; }
+			m_ScrollV.SetMetrics(static_cast<float>(m_vRows.size()) * m_fRowH, m_ScrollV.ViewportH());
+			const float fTop_ = static_cast<float>(_nRow) * m_fRowH;
+			const float fCur_ = m_ScrollV.GetValue();
+			const float fVis_ = m_ScrollV.ViewportH();
+			if (fTop_ < fCur_) { m_ScrollV.SetValue(fTop_); }
+			else if (fTop_ + m_fRowH > fCur_ + fVis_) { m_ScrollV.SetValue(fTop_ + m_fRowH - fVis_); }
+		}
 
 		// 컬럼 너비 편집 API(설정창) - m_vCols 위임. 폭 단위 px, 최소 m_fMinColW 클램프.
 		int          ColumnCount() const override { return static_cast<int>(m_vCols.size()); }
