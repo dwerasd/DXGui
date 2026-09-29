@@ -144,6 +144,7 @@ namespace dxgui
 			if (_nRow < 0 || _nRow >= static_cast<int>(m_vRows.size()) || m_fRowH <= 0.0f) { return; }
 			m_ScrollV.SetMetrics(static_cast<float>(m_vRows.size()) * m_fRowH, m_ScrollV.ViewportH());
 			const float fTop_ = static_cast<float>(_nRow) * m_fRowH;
+			if (m_ScrollV.ViewportH() <= 0.0f) { m_ScrollV.SetValue(fTop_); return; }	// 첫 렌더 전(보이는 높이 미정) - 행을 맨 위에 둔다
 			const float fCur_ = m_ScrollV.GetValue();
 			const float fVis_ = m_ScrollV.ViewportH();
 			if (fTop_ < fCur_) { m_ScrollV.SetValue(fTop_); }
