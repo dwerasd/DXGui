@@ -148,6 +148,7 @@ namespace dxgui
 				m_nSelRow = r;
 				if (m_OnSelect) { m_OnSelect(r); }
 			}
+			if (r >= 0 && r < nRows && m_OnClick) { m_OnClick(r); }
 		}
 
 		// 행 더블클릭 - 선택 갱신 후 콜백(차트반영/관심추가 등 호출처 동작). HTS 식.

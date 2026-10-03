@@ -62,6 +62,7 @@ namespace dxgui
 		C_DXG_SCROLLBAR m_ScrollH;	// 임베드 가로 스크롤바(컬럼폭 합 > 본문폭 일 때)
 		std::function<void(int)> m_OnSelect;
 		std::function<void(int)> m_OnDblClick;	// 본문 행 더블클릭(행 인덱스) - 차트반영/관심추가 등 호출처 동작
+		std::function<void(int)> m_OnClick;		// 본문 행 좌클릭(행 인덱스) - 이미 선택된 행도 매번 발화(OnSelect 는 선택이 바뀔 때만)
 		std::function<void(float, float)> m_OnRightClick;	// 본문 우클릭(x,y 화면좌표) - 컨텍스트 메뉴 호출처
 
 		// 헤더 상호작용 - 정렬(클릭) / 컬럼 리사이즈(경계 드래그).
@@ -88,6 +89,8 @@ namespace dxgui
 		void SetStretchLastColumn(bool _b) { m_bStretchLast = _b; }		// 마지막 컬럼 남은폭 채움(클리핑/수동조절 방지)
 		void SetHeaderCenter(bool _b)      { m_bHeaderCenter = _b; }		// 헤더 제목 가운데정렬
 		void SetOnSelect(std::function<void(int)> _fn) { m_OnSelect = std::move(_fn); }
+		// 행 좌클릭 콜백 - 유효 행 클릭마다 발화(이미 선택된 행 재클릭 포함). 선택 갱신·OnSelect 뒤에 호출되며 OnSelect 를 대체하지 않는다.
+		void SetOnClick(std::function<void(int)> _fn) { m_OnClick = std::move(_fn); }
 		// 행 더블클릭 콜백 - 행 인덱스 전달. 단일클릭(선택)과 별개로 발화(HTS 식).
 		void SetOnDblClick(std::function<void(int)> _fn) { m_OnDblClick = std::move(_fn); }
 		// 본문 우클릭 콜백 - (x,y) 화면좌표 전달. 컨텍스트 메뉴는 호출처가 소유.
