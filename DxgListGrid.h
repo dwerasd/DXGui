@@ -162,6 +162,8 @@ namespace dxgui
 		{ if (_i >= 0 && _i < static_cast<int>(m_vCols.size())) { m_vCols[_i].fWidth = (_w < m_fMinColW) ? m_fMinColW : _w; } }
 		std::wstring ColumnName(int _i) const override
 		{ return (_i >= 0 && _i < static_cast<int>(m_vCols.size())) ? m_vCols[_i].sTitle : std::wstring(); }
+		void         SetColumnTitle(int _i, const std::wstring& _sTitle)	// 머리글만 바꾼다(폭·정렬 유지 - 단위 전환 등)
+		{ if (_i >= 0 && _i < static_cast<int>(m_vCols.size())) { m_vCols[_i].sTitle = _sTitle; } }
 
 		E_DXG_WIDGET_TYPE GetType() const override     { return DXG_WIDGET_LISTGRID; }
 		const char*       GetTypeName() const override { return "listgrid"; }
