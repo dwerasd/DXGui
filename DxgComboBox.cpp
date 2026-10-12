@@ -79,11 +79,33 @@ namespace dxgui
 		if (nVis > n) { nVis = n; }
 		const float fDropH = m_fItemH * static_cast<float>(nVis);
 		const float fDropY = bUp ? (abs_.y - fDropH) : (abs_.y + abs_.h);
-		const _DXG_RECT dd_(abs_.x, fDropY, abs_.w, fDropH);
 
 		// 스크롤 가능 여부 + 휠 처리(호스트가 모달 중 휠을 컨텍스트로 넘김). 노치당 3행.
 		const float fMaxScroll = fFullH - fDropH;
 		const bool  bScroll    = fMaxScroll > 0.5f;
+		const float fBarW      = bScroll ? 6.0f : 0.0f;	// 스크롤바 폭(있을 때만)
+
+		// 펼침 폭 = max(박스 폭, 가장 긴 항목 + 좌우 여백 + 스크롤바) - 박스보다 긴 항목의 꼬리가 잘리지 않게 넓히기만 한다.
+		// 오른쪽으로 캔버스를 넘치면 왼쪽으로 민다. g_fOverlayCanvasW<=0(미주입) 이면 가로 클램프 없음.
+		float fDropW = abs_.w;
+		if (m_hFont != INVALID_FONT)
+		{
+			for (const std::wstring& s_ : m_vItems)
+			{
+				const float fNeed_ = _ctx.MeasureText(m_hFont, s_.c_str(), m_fFontScale).w + m_fCellPad * 2.0f + fBarW;
+				if (fNeed_ > fDropW) { fDropW = fNeed_; }
+			}
+		}
+		float fDropX = abs_.x;
+		const float fCanvasW = g_fOverlayCanvasW;
+		if (fCanvasW > 0.0f)
+		{
+			const float fMaxW_ = fCanvasW - fMargin * 2.0f;
+			if (fDropW > fMaxW_) { fDropW = (fMaxW_ > abs_.w) ? fMaxW_ : abs_.w; }
+			if (fDropX + fDropW > fCanvasW - fMargin) { fDropX = fCanvasW - fMargin - fDropW; }
+			if (fDropX < fMargin) { fDropX = fMargin; }
+		}
+		const _DXG_RECT dd_(fDropX, fDropY, fDropW, fDropH);
 		if (bScroll)
 		{
 			const float fWheel = _ctx.GetWheelDelta();
@@ -95,7 +117,6 @@ namespace dxgui
 		_ctx.FillRect(dd_, m_DropBgColor);
 		_ctx.DrawRectOutline(dd_, m_BorderOpenColor, 1.0f);
 
-		const float fBarW  = bScroll ? 6.0f : 0.0f;	// 스크롤바 폭(있을 때만)
 		const float fItemW = dd_.w - fBarW;
 
 		_ctx.PushClipRect(dd_);	// 항목을 드롭다운 박스로 클립(스크롤 넘침/캔버스 밖 미표시)
