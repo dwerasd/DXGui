@@ -1,5 +1,6 @@
 ﻿// DxgListGrid.cpp
 #include "DxgListGrid.h"
+#include "DxgKeys.h"		// DXG_VK_CONTROL / DXG_VK_SHIFT(다중 선택)
 
 #include <cmath>
 #include <algorithm>
@@ -143,12 +144,38 @@ namespace dxgui
 		{
 			const float fMy = _ctx.GetMousePos().y;
 			const int r = (m_fRowH > 0.0f) ? static_cast<int>(::floorf((fMy - fBodyTop + fScrollY) / m_fRowH)) : -1;
-			if (r >= 0 && r < nRows && m_nSelRow != r)
+			const bool bCtrl_ = m_bMulti && _ctx.IsKeyDown(DXG_VK_CONTROL);
+			const bool bShift_ = m_bMulti && _ctx.IsKeyDown(DXG_VK_SHIFT);
+			if (m_vMark.size() != m_vRows.size()) { m_vMark.assign(m_vRows.size(), 0); }
+			if (r >= 0 && r < nRows && (bCtrl_ || bShift_))
 			{
-				m_nSelRow = r;
-				if (m_OnSelect) { m_OnSelect(r); }
+				if (bShift_)
+				{
+					const int a_ = (m_nAnchor >= 0 && m_nAnchor < nRows) ? m_nAnchor : r;
+					if (!bCtrl_) { std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0)); }
+					for (int i = (std::min)(a_, r); i <= (std::max)(a_, r); ++i) { m_vMark[i] = 1; }
+				}
+				else
+				{
+					m_vMark[r] = (m_vMark[r] != 0) ? 0 : 1;
+					m_nAnchor = r;
+				}
 			}
-			if (r >= 0 && r < nRows && m_OnClick) { m_OnClick(r); }
+			else
+			{
+				if (r >= 0 && r < nRows && m_bMulti)
+				{
+					std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));
+					m_vMark[r] = 1;
+					m_nAnchor = r;
+				}
+				if (r >= 0 && r < nRows && m_nSelRow != r)
+				{
+					m_nSelRow = r;
+					if (m_OnSelect) { m_OnSelect(r); }
+				}
+				if (r >= 0 && r < nRows && m_OnClick) { m_OnClick(r); }
+			}
 		}
 
 		// 행 더블클릭 - 선택 갱신 후 콜백(차트반영/관심추가 등 호출처 동작). HTS 식.
@@ -182,7 +209,9 @@ namespace dxgui
 				const float fRowY = fBodyTop + static_cast<float>(r) * m_fRowH - fScrollY;
 				// 행 기본 배경(선택 > 교대 > 기본).
 				_DXG_COLOR base = m_RowBg;
-				if (r == m_nSelRow)               { base = m_SelBg; }
+				// 다중 선택이면 표시한 행만 칠한다(Ctrl 클릭으로 뺀 선택 행이 표시된 것처럼 보이지 않게)
+				const bool bSel_ = m_bMulti ? (r < static_cast<int>(m_vMark.size()) && m_vMark[r] != 0) : (r == m_nSelRow);
+				if (bSel_)                        { base = m_SelBg; }
 				else if (m_bRowAlt && (r & 1))    { base = m_RowAltBg; }
 				_ctx.FillRect(_DXG_RECT(abs_.x, fRowY, fBodyW, m_fRowH), base);
 
@@ -195,7 +224,7 @@ namespace dxgui
 					if (fCx + fCw > abs_.x)						// 좌측 밖 컬럼 skip
 					{
 						const _DXG_GRID_CELL* pCell = (c < static_cast<int>(row.size())) ? &row[c] : nullptr;
-						if (pCell != nullptr && pCell->bgColor.A() > 0 && r != m_nSelRow)
+						if (pCell != nullptr && pCell->bgColor.A() > 0 && !bSel_)
 						{
 							_ctx.FillRect(_DXG_RECT(fCx, fRowY, fCw, m_fRowH), pCell->bgColor);
 						}
@@ -218,7 +247,7 @@ namespace dxgui
 						}
 						else if (pCell != nullptr)
 						{
-							const _DXG_COLOR tcol = (r == m_nSelRow) ? m_SelText : pCell->textColor;
+							const _DXG_COLOR tcol = bSel_ ? m_SelText : pCell->textColor;
 							this->drawCellText_(_ctx, pCell->sText, tcol, fCx, fCw, fRowY, m_fRowH, m_vCols[c].align);
 						}
 					}
@@ -283,6 +312,8 @@ namespace dxgui
 					else { m_nSortCol = nHitCol; m_bSortAsc = true; }
 					this->sortRows_();
 					m_nSelRow = -1;
+					std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));	// 정렬로 행이 바뀌었다
+					m_nAnchor = -1;
 				}
 			}
 		}

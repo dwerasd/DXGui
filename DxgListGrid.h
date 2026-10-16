@@ -9,6 +9,8 @@
 #include "DxgBadge.h"		// E_DXG_BADGE_KIND / BadgeColor (배지 셀)
 #include "DxgScrollbar.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <functional>
@@ -76,6 +78,11 @@ namespace dxgui
 		bool  m_bHeaderInteract{ true };	// 정렬/리사이즈 활성
 		bool  m_bStretchLast{ false };		// 마지막 컬럼이 남은 본문폭을 채움(윈도우 ListView 식). 클리핑/수동조절 방지.
 		bool  m_bHeaderCenter{ false };		// 헤더 제목 가운데정렬(데이터 정렬과 무관)
+		// 다중 선택(기본 끔): 보통 클릭 = 그 행만 표시 + 선택, Ctrl+클릭 = 표시 토글, Shift+클릭 = 기준 행부터 범위 표시.
+		// Ctrl/Shift 클릭은 선택(m_nSelRow)과 OnSelect/OnClick 을 건드리지 않는다.
+		bool  m_bMulti{ false };
+		std::vector<uint8_t> m_vMark;		// 행별 표시(크기 = 행 수)
+		int   m_nAnchor{ -1 };				// Shift 범위 기준 행
 
 	public:
 		C_DXG_LISTGRID();
@@ -88,6 +95,15 @@ namespace dxgui
 		void SetHeaderInteract(bool _b)    { m_bHeaderInteract = _b; }	// 정렬/리사이즈 on/off
 		void SetStretchLastColumn(bool _b) { m_bStretchLast = _b; }		// 마지막 컬럼 남은폭 채움(클리핑/수동조절 방지)
 		void SetHeaderCenter(bool _b)      { m_bHeaderCenter = _b; }		// 헤더 제목 가운데정렬
+		void SetMultiSelect(bool _b)       { m_bMulti = _b; }
+		bool IsRowMarked(int _r) const
+		{ return _r >= 0 && _r < static_cast<int>(m_vMark.size()) && m_vMark[_r] != 0; }
+		std::vector<int> MarkedRows() const
+		{
+			std::vector<int> v;
+			for (int r = 0; r < static_cast<int>(m_vMark.size()); ++r) { if (m_vMark[r] != 0) { v.push_back(r); } }
+			return v;
+		}
 		void SetOnSelect(std::function<void(int)> _fn) { m_OnSelect = std::move(_fn); }
 		// 행 좌클릭 콜백 - 유효 행 클릭마다 발화(이미 선택된 행 재클릭 포함). 선택 갱신·OnSelect 뒤에 호출되며 OnSelect 를 대체하지 않는다.
 		void SetOnClick(std::function<void(int)> _fn) { m_OnClick = std::move(_fn); }
@@ -108,10 +124,11 @@ namespace dxgui
 		void ClearColumns() { m_vCols.clear(); }
 
 		// 행 구성 - AddRow 후 SetCell. 셀은 컬럼 수만큼 자동 확보.
-		void ClearRows() { m_vRows.clear(); m_nSelRow = -1; }
+		void ClearRows() { m_vRows.clear(); m_nSelRow = -1; m_vMark.clear(); m_nAnchor = -1; }
 		int  AddRow()
 		{
 			m_vRows.emplace_back(m_vCols.size());
+			m_vMark.push_back(0);
 			return static_cast<int>(m_vRows.size()) - 1;
 		}
 		void SetCell(int _nRow, int _nCol, const std::wstring& _sText, _DXG_COLOR _textColor)
@@ -139,7 +156,16 @@ namespace dxgui
 		size_t RowCount() const { return m_vRows.size(); }
 		size_t ColCount() const { return m_vCols.size(); }
 		int    SelectedRow() const { return m_nSelRow; }
-		void   SetSelectedRow(int _r) { m_nSelRow = _r; }
+		void   SetSelectedRow(int _r)
+		{
+			m_nSelRow = _r;
+			if (m_bMulti)	// 다중 선택이면 표시도 그 행 하나로
+			{
+				std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));
+				if (_r >= 0 && _r < static_cast<int>(m_vMark.size())) { m_vMark[_r] = 1; }
+				m_nAnchor = _r;
+			}
+		}
 		// 행을 본문 안으로 즉시 스크롤한다. 행을 막 다시 채운 직후에도 맞도록 현재 행 수로 세로 범위를 먼저 다시 맞춘다
 		// (가로 스크롤바가 없는 격자 전제 - SetStretchLastColumn(true)).
 		void   ScrollToRow(int _nRow)
