@@ -23,6 +23,8 @@ namespace dxgui
 		}
 
 		int nClicked_ = -1;
+		const bool bPress_ = m_bEnabled && _ctx.IsMouseClicked(DXG_MOUSE_LEFT);
+		if (bPress_) { m_nPressedItem = -1; }
 		for (int i = 0; i < nCnt_; ++i)
 		{
 			const _DXG_RECT rc_(abs_.x + 8.0f,
@@ -61,8 +63,13 @@ namespace dxgui
 			}
 
 			// 클릭 = UP 구동(DOWN 구동 시 이번 프레임에 열리는 창/팝업으로 클릭이 관통한다).
-			if (m_bEnabled && bHover_ && _ctx.IsMouseReleased(DXG_MOUSE_LEFT)) { nClicked_ = i; }
+			// press 가 같은 항목에서 시작된 경우만 - 밖에서 끌고 온 release 로는 발화 금지.
+			if (bPress_ && bHover_) { m_nPressedItem = i; }
+			if (m_bEnabled && bHover_ && m_nPressedItem == i && _ctx.IsMouseReleased(DXG_MOUSE_LEFT)) { nClicked_ = i; }
 		}
+
+		// 표식 소비/낡은 표식 해제(release 이거나 눌려있지 않은 프레임, 비활성).
+		if (!m_bEnabled || _ctx.IsMouseReleased(DXG_MOUSE_LEFT) || !_ctx.IsMouseDown(DXG_MOUSE_LEFT)) { m_nPressedItem = -1; }
 
 		if (nClicked_ >= 0)
 		{

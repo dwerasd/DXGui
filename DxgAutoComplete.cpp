@@ -164,7 +164,7 @@ namespace dxgui
 	void C_DXG_AUTOCOMPLETE::RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin)
 	{
 		// 그리지 않는 프레임은 모달도 아니다(호버 표식이 낡은 채 남으면 pass1 이 계속 캡처된다).
-		if (!m_bVisible || !m_bOpen || m_vItems.empty()) { m_bHoverDropLast = false; return; }
+		if (!m_bVisible || !m_bOpen || m_vItems.empty()) { m_bHoverDropLast = false; m_bPressedInDrop = false; return; }
 
 		const _DXG_RECT abs_ = this->AbsRect(_origin);
 		const int   n_      = static_cast<int>(m_vItems.size());
@@ -245,6 +245,9 @@ namespace dxgui
 
 		const float fItemW_ = dd_.w - fBarW_;
 
+		// 항목 선택은 press 가 드롭다운 박스 안에서 시작된 경우만(에디트 드래그 선택이 끌고 온 release 로는 선택 금지).
+		if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bPressedInDrop = bHoverDrop_; }
+
 		int nClick_ = -1;
 		_ctx.PushClipRect(dd_);	// 항목을 드롭다운 박스로 클립(스크롤 넘침/캔버스 밖 미표시)
 		for (int i = 0; i < n_; ++i)
@@ -257,13 +260,16 @@ namespace dxgui
 			else if (bHov_)  { _ctx.FillRect(itemR_, m_ItemHoverBg); }
 			this->drawTextClip_(_ctx, m_vItems[i].sText, itemR_.x, itemR_.w, itemR_.y, itemR_.h, m_ItemTextColor);
 
-			if (m_bEnabled && bHov_ && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))	// UP 구동(아래 위젯 클릭관통 차단)
+			if (m_bEnabled && m_bPressedInDrop && bHov_ && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))	// UP 구동(아래 위젯 클릭관통 차단)
 			{
 				nClick_ = i;
 				break;	// 확정은 클립 해제 후 - confirm_ 이 목록을 비운다
 			}
 		}
 		_ctx.PopClipRect();
+
+		// 표식 소비/낡은 표식 해제(release 이거나 눌려있지 않은 프레임) - 아래 확정/닫기 return 경로보다 먼저 내린다.
+		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT) || !_ctx.IsMouseDown(DXG_MOUSE_LEFT)) { m_bPressedInDrop = false; }
 
 		// 스크롤바(트랙+thumb) - 우측 가장자리. 휠 구동(드래그 미지원).
 		if (bScroll_ && nClick_ < 0)

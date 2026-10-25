@@ -86,10 +86,23 @@ namespace dxgui
 				m_sName.c_str(), col_, m_fFontScale);
 		}
 
-		// ── 클릭 판정 ──
-		if (m_bEnabled && bHover_ && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+		// ── 클릭 판정 ── press 가 버튼 안에서 시작된 경우만(에디트 드래그 선택 등이 밖에서 끌고 온 release 로는 발화 금지).
+		// 표식은 release 에 소비하고, 버튼이 눌려있지도 놓이지도 않은 프레임(press 후 숨김 등)이면 낡은 표식을 내린다.
+		if (!m_bEnabled)
 		{
-			if (m_OnClick) { m_OnClick(); }
+			m_bPressedInside = false;
+			return;
+		}
+		if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bPressedInside = bHover_; }
+		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+		{
+			const bool bFire_ = m_bPressedInside && bHover_;
+			m_bPressedInside = false;
+			if (bFire_ && m_OnClick) { m_OnClick(); }
+		}
+		else if (!_ctx.IsMouseDown(DXG_MOUSE_LEFT))
+		{
+			m_bPressedInside = false;
 		}
 	}
 

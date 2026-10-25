@@ -104,19 +104,34 @@ namespace dxgui
 		_ctx.FillRect(inR_, _DXG_COLOR(m_Color));
 		_ctx.DrawRectOutline(abs_, (m_bOpen || bHov) ? m_BorderOpenColor : m_BorderColor, (m_bOpen || bHov) ? 2.0f : 1.0f);
 
-		// 열기(헤더 클릭) — UP 구동(콤보와 동일, 클릭관통 차단).
-		if (m_bEnabled && !m_bOpen && bHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+		// 열기(헤더 클릭) - UP 구동(콤보와 동일, 클릭관통 차단). press 가 헤더 안에서 시작된 경우만 연다.
+		if (!m_bEnabled || m_bOpen)
 		{
-			m_bOpen = true;
-			m_bJustOpened = true;
-			m_nFocus = 0;
-			syncBuffersFromColor_();
+			m_bPressedInside = false;
+			return;
+		}
+		if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bPressedInside = bHov; }
+		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+		{
+			const bool bOpen_ = m_bPressedInside && bHov;
+			m_bPressedInside = false;
+			if (bOpen_)
+			{
+				m_bOpen = true;
+				m_bJustOpened = true;
+				m_nFocus = 0;
+				syncBuffersFromColor_();
+			}
+		}
+		else if (!_ctx.IsMouseDown(DXG_MOUSE_LEFT))
+		{
+			m_bPressedInside = false;
 		}
 	}
 
 	void C_DXG_COLOR_FIELD::RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin)
 	{
-		if (!m_bVisible || !m_bOpen) { return; }
+		if (!m_bVisible || !m_bOpen) { m_bPressedInPop = false; return; }
 
 		const _DXG_RECT abs_ = AbsRect(_origin);
 		const float fGridW = kCols * kCell + (kCols - 1) * kGap;	// 165
@@ -127,6 +142,9 @@ namespace dxgui
 
 		_ctx.FillRect(pop_, m_PopupBgColor);
 		_ctx.DrawRectOutline(pop_, m_BorderOpenColor, 1.0f);
+
+		// 셀 선택은 press 가 팝업 박스 안에서 시작된 경우만(밖에서 끌고 온 release 로는 선택 금지).
+		if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bPressedInPop = _ctx.IsMouseHovered(pop_); }
 
 		// 팔레트 그리드.
 		const float gx = pop_.x + kPad;
@@ -144,7 +162,7 @@ namespace dxgui
 				{
 					_ctx.DrawRectOutline(cell_, bSel ? m_BorderOpenColor : _DXG_COLOR(0xFF222838u), 2.0f);
 				}
-				if (m_bEnabled && !m_bJustOpened && bCellHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+				if (m_bEnabled && !m_bJustOpened && m_bPressedInPop && bCellHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
 				{
 					this->pickColor_(s_aPalette[idx]);
 				}
@@ -245,6 +263,9 @@ namespace dxgui
 		{
 			m_bOpen = false;
 		}
+
+		// 표식 소비/낡은 표식 해제(release 이거나 눌려있지 않은 프레임).
+		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT) || !_ctx.IsMouseDown(DXG_MOUSE_LEFT)) { m_bPressedInPop = false; }
 	}
 
 } // namespace dxgui

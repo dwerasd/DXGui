@@ -47,20 +47,37 @@ namespace dxgui
 		// 열기만 처리(헤더 클릭). 닫기/항목선택은 오버레이 패스에서 처리.
 		// ★UP(Released) 구동 — 버튼과 동일. DOWN 구동이면 콤보가 DOWN 에 닫혀 모달이 풀린 뒤
 		//   이어진 UP 에서 드롭다운 아래 버튼이 발화(클릭관통). UP 까지 모달 유지해 아래 위젯 차단.
-		if (m_bEnabled && !m_bOpen && bHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+		// ★press 가 헤더 안에서 시작된 경우만 연다 - 에디트 드래그 선택 등이 밖에서 끌고 온 release 로는 열지 않는다.
+		//   표식은 release 에 소비하고, 눌려있지도 놓이지도 않은 프레임(press 후 숨김/비활성)이면 낡은 표식을 내린다.
+		if (!m_bEnabled || m_bOpen)
 		{
-			m_bOpen = true;
-			m_bJustOpened = true;	// 연 릴리즈가 오버레이의 외부클릭 닫기를 같은 프레임에 트리거하지 않도록
-			m_fScrollY = m_fItemH * static_cast<float>(m_nSel > 0 ? m_nSel : 0);	// 선택항목이 보이게(오버레이에서 클램프)
+			m_bPressedInside = false;
+			return;
+		}
+		if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bPressedInside = bHov; }
+		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT))
+		{
+			const bool bOpen_ = m_bPressedInside && bHov;
+			m_bPressedInside = false;
+			if (bOpen_)
+			{
+				m_bOpen = true;
+				m_bJustOpened = true;	// 연 릴리즈가 오버레이의 외부클릭 닫기를 같은 프레임에 트리거하지 않도록
+				m_fScrollY = m_fItemH * static_cast<float>(m_nSel > 0 ? m_nSel : 0);	// 선택항목이 보이게(오버레이에서 클램프)
+			}
+		}
+		else if (!_ctx.IsMouseDown(DXG_MOUSE_LEFT))
+		{
+			m_bPressedInside = false;
 		}
 	}
 
 	void C_DXG_COMBOBOX::RenderOverlay(IDrawContext& _ctx, _DXG_POINT _origin)
 	{
-		if (!m_bVisible || !m_bOpen || m_vItems.empty()) { return; }
+		if (!m_bVisible || !m_bOpen || m_vItems.empty()) { m_bPressedInDrop = false; return; }
 
 		const _DXG_RECT abs_ = AbsRect(_origin);
-		const int n = static_cast<int>(m_vItems.size());
+		const int n =static_cast<int>(m_vItems.size());
 		const float fFullH = m_fItemH * static_cast<float>(n);
 
 		// 펼침 방향/높이 — 캔버스(창) 안에 들어가도록 클램프. 아래 공간이 너무 작으면 위로 펼침.
@@ -119,6 +136,9 @@ namespace dxgui
 
 		const float fItemW = dd_.w - fBarW;
 
+		// 항목 선택은 press 가 드롭다운 박스 안에서 시작된 경우만(밖에서 끌고 온 release 로는 선택 금지).
+		if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bPressedInDrop = _ctx.IsMouseHovered(dd_); }
+
 		_ctx.PushClipRect(dd_);	// 항목을 드롭다운 박스로 클립(스크롤 넘침/캔버스 밖 미표시)
 		for (int i = 0; i < n; ++i)
 		{
@@ -130,7 +150,7 @@ namespace dxgui
 			else if (bHov)        { _ctx.FillRect(itemR_, m_ItemHoverBg); }
 			this->drawTextClip_(_ctx, m_vItems[i], itemR_.x, itemR_.w, itemR_.y, itemR_.h, m_TextColor);
 
-			if (m_bEnabled && bHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))	// UP 구동(아래 버튼 클릭관통 차단)
+			if (m_bEnabled && m_bPressedInDrop && bHov && _ctx.IsMouseReleased(DXG_MOUSE_LEFT))	// UP 구동(아래 버튼 클릭관통 차단)
 			{
 				if (m_nSel != i) { m_nSel = i; if (m_OnChange) { m_OnChange(i); } }
 				m_bOpen = false;
@@ -158,6 +178,9 @@ namespace dxgui
 		{
 			m_bOpen = false;
 		}
+
+		// 표식 소비/낡은 표식 해제(release 이거나 눌려있지 않은 프레임).
+		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT) || !_ctx.IsMouseDown(DXG_MOUSE_LEFT)) { m_bPressedInDrop = false; }
 	}
 
 } // namespace dxgui

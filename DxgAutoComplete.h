@@ -43,6 +43,7 @@ namespace dxgui
 		bool  m_bHoverDropLast;			// 직전 프레임 오버레이에서 마우스가 드롭다운 위였나(모달 범위 판정)
 		bool  m_bScrollToSel;			// 위/아래 키 이동 후 선택항목 가시화 요청(높이는 오버레이가 안다)
 		bool  m_bItemsWDirty;			// 후보가 바뀌어 최장 항목 폭 재측정이 필요한가(측정은 오버레이가 1회)
+		bool  m_bPressedInDrop{ false };	// LMB press 가 드롭다운 박스 안에서 시작됐나 - release 시 항목 선택 판정
 		int   m_nMaxVisible;
 		float m_fItemH;
 		float m_fCellPad;

@@ -21,6 +21,8 @@ namespace dxgui
 		unsigned int m_Color;		// ARGB(0xAARRGGBB)
 		bool         m_bOpen;
 		bool         m_bJustOpened;	// 연 프레임 외부클릭 닫기 1프레임 무시
+		bool         m_bPressedInside{ false };	// LMB press 가 헤더 안에서 시작됐나 - release 시 열기 판정
+		bool         m_bPressedInPop{ false };	// LMB press 가 팝업 박스 안에서 시작됐나 - release 시 셀 선택 판정
 		FontHandle   m_hFont;
 		std::wstring m_sHex;		// hex 편집 버퍼("RRGGBB"/"AARRGGBB", '#' 미포함, 대문자)
 		std::wstring m_sR, m_sG, m_sB;	// R/G/B 10진 편집 버퍼(0~255)

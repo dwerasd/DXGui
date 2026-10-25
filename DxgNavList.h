@@ -32,6 +32,7 @@ namespace dxgui
 		FontHandle m_hIconFont;
 		uint32_t   m_uIconFontPx;
 		std::function<void(int)> m_OnSelect;
+		int        m_nPressedItem{ -1 };	// LMB press 가 시작된 항목(-1 = 항목 밖) - release 시 같은 항목일 때만 클릭 판정
 
 	public:
 		C_DXG_NAV_LIST()

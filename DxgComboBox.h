@@ -25,6 +25,8 @@ namespace dxgui
 		float      m_fItemH;		// 드롭다운 항목 높이
 		float      m_fCellPad;
 		float      m_fScrollY;		// 드롭다운 스크롤 오프셋(px) - 항목이 박스보다 길 때
+		bool       m_bPressedInside{ false };	// LMB press 가 헤더 안에서 시작됐나 - release 시 열기 판정
+		bool       m_bPressedInDrop{ false };	// LMB press 가 드롭다운 박스 안에서 시작됐나 - release 시 항목 선택 판정
 
 		_DXG_COLOR m_BgColor;
 		_DXG_COLOR m_TextColor;

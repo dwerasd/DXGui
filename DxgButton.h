@@ -35,6 +35,7 @@ namespace dxgui
 		_DXG_COLOR         m_BorderColor;
 		float              m_fBorderThickness;
 		std::function<void()> m_OnClick;
+		bool               m_bPressedInside{ false };	// LMB press 가 버튼 안에서 시작됐나 - release 시 클릭 판정(밖에서 끌고 온 release 무시)
 
 		// 아이콘(MDL2 글리프). 0 = 없음. 폰트는 최초 렌더 시 지연 등록(px 변경 시 재등록).
 		wchar_t            m_cIcon;

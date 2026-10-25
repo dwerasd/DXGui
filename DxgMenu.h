@@ -28,6 +28,7 @@ namespace dxgui
 
 		bool       m_bOpen;
 		bool       m_bJustOpened;		// 연 프레임 1회 무시 — 메뉴를 연 UP(릴리즈)이 같은 프레임에 항목선택/외부닫기를 트리거하지 않도록
+		bool       m_bPressedInside{ false };	// LMB press 가 메뉴 박스 안에서 시작됐나 - release 시 항목 선택 판정
 		float      m_fPosX, m_fPosY;	// 팝업 좌상단(절대 px)
 		FontHandle m_hFont;
 		float      m_fItemH, m_fSepH, m_fCellPad, m_fMinWidth;

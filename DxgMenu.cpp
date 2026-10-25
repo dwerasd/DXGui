@@ -7,7 +7,7 @@ namespace dxgui
 
 	void C_DXG_MENU::RenderOverlay(IDrawContext& _ctx, _DXG_POINT /*_origin*/)
 	{
-		if (!m_bOpen || m_vItems.empty()) { return; }
+		if (!m_bOpen || m_vItems.empty()) { m_bPressedInside = false; return; }
 
 		// 폭 산출(항목 텍스트 최대 + 패딩) / 높이 산출.
 		float fW = m_fMinWidth;
@@ -31,6 +31,10 @@ namespace dxgui
 		// 항목 렌더 + 입력. ★UP(Released) 구동 — DOWN 구동이면 항목이 DOWN 에 닫혀 모달이 풀린 뒤
 		//   이어진 UP 에서 메뉴 아래 버튼(UP 구동)이 발화(클릭관통). UP 까지 모달 유지해 아래 위젯 차단.
 		bool bClick = m_bEnabled && _ctx.IsMouseReleased(DXG_MOUSE_LEFT);
+		// 항목 선택은 press 가 메뉴 박스 안에서 시작된 경우만(밖에서 끌고 온 release 로는 선택 금지). 연 프레임의 press 는 세지 않는다.
+		if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bPressedInside = !m_bJustOpened && _ctx.IsMouseHovered(box_); }
+		const bool bItemClick = bClick && m_bPressedInside;
+		if (_ctx.IsMouseReleased(DXG_MOUSE_LEFT) || !_ctx.IsMouseDown(DXG_MOUSE_LEFT)) { m_bPressedInside = false; }	// 소비/낡은 표식 해제
 		if (m_bJustOpened) { m_bJustOpened = false; bClick = false; }	// 연 UP 은 같은 프레임 무시(즉시 닫힘/오선택 방지)
 		float fY = m_fPosY;
 		for (size_t i = 0; i < m_vItems.size(); ++i)
@@ -58,7 +62,7 @@ namespace dxgui
 				_ctx.PopClipRect();
 			}
 
-			if (bClick && bHov)
+			if (bClick && bItemClick && bHov)
 			{
 				std::function<void()> fn = it.onClick;	// Close 전 복사(재진입 안전)
 				m_bOpen = false;
