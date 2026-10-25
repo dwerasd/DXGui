@@ -20,32 +20,7 @@ namespace dxgui
 		}
 
 		// ── 단일행(기존 동작 보존) ──
-		const std::wstring* pText_ = &m_sName;
-		if (m_bEllipsis && m_Rect.w > 0.0f)
-		{
-			if (m_sElideSrc != m_sName || m_fElideW != m_Rect.w)
-			{
-				m_sElideSrc = m_sName;
-				m_fElideW = m_Rect.w;
-				m_sElideOut = m_sName;
-				if (_ctx.MeasureText(m_hFont, m_sName.c_str(), m_fFontScale).w > m_Rect.w)
-				{
-					// 들어가는 가장 긴 앞부분 + "..." 를 이분 탐색으로 찾는다
-					size_t nLo_ = 0;
-					size_t nHi_ = m_sName.size();
-					while (nLo_ < nHi_)
-					{
-						const size_t nMid_ = (nLo_ + nHi_ + 1) / 2;
-						const std::wstring sTry_ = m_sName.substr(0, nMid_) + L"...";
-						if (_ctx.MeasureText(m_hFont, sTry_.c_str(), m_fFontScale).w <= m_Rect.w) { nLo_ = nMid_; }
-						else { nHi_ = nMid_ - 1; }
-					}
-					m_sElideOut = m_sName.substr(0, nLo_) + L"...";
-				}
-			}
-			pText_ = &m_sElideOut;
-		}
-		const _DXG_SIZE sz_ = _ctx.MeasureText(m_hFont, pText_->c_str(), m_fFontScale);
+		const _DXG_SIZE sz_ = _ctx.MeasureText(m_hFont, m_sName.c_str(), m_fFontScale);
 
 		float fX_ = _origin.x + m_Rect.x;
 		float fY_ = _origin.y + m_Rect.y;
@@ -72,7 +47,7 @@ namespace dxgui
 			}
 		}
 		_ctx.DrawText(m_hFont, _DXG_POINT(fX_, fY_),
-			pText_->c_str(), m_Color, m_fFontScale);
+			m_sName.c_str(), m_Color, m_fFontScale);
 	}
 
 	// 멀티라인 렌더 — '\n' 분할. 줄높이=GetFontHeight, 블록높이=줄높이*줄수.
