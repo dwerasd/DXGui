@@ -17,6 +17,10 @@ namespace dxgui
 		E_DXG_TEXT_ALIGN  m_Align;
 		E_DXG_VTEXT_ALIGN m_VAlign;
 		FontHandle        m_hFont;	// 호스트가 등록한 폰트 핸들
+		bool              m_bEllipsis;	// 단일행이 폭을 넘으면 뒤를 "..." 로 줄인다 (기본 꺼짐 - 넘치면 그대로 그린다)
+		std::wstring      m_sElideSrc;	// 말줄임 캐시: 원문·폭·결과 (프레임마다 재측정하지 않는다)
+		float             m_fElideW;
+		std::wstring      m_sElideOut;
 
 	public:
 		C_DXG_LABEL()
@@ -24,6 +28,8 @@ namespace dxgui
 			, m_Align(DXG_TEXT_ALIGN_LEFT)
 			, m_VAlign(DXG_VALIGN_TOP)
 			, m_hFont(INVALID_FONT)
+			, m_bEllipsis(false)
+			, m_fElideW(-1.0f)
 		{
 		}
 
@@ -32,6 +38,7 @@ namespace dxgui
 		void SetAlign(E_DXG_TEXT_ALIGN _a)   { m_Align = _a; }
 		void SetVAlign(E_DXG_VTEXT_ALIGN _a) { m_VAlign = _a; }
 		void SetFont(FontHandle _h)          { m_hFont = _h; }
+		void SetEllipsis(bool _b)            { m_bEllipsis = _b; m_fElideW = -1.0f; }
 
 		_DXG_COLOR        GetColor()  const { return m_Color; }
 		E_DXG_TEXT_ALIGN  GetAlign()  const { return m_Align; }
