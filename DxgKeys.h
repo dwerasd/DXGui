@@ -1,5 +1,5 @@
 ﻿// DxgKeys.h: 위젯이 IsKeyPressed(int) 에 넘기는 가상키 상수.
-// <Windows.h> 비포함(코어 컴파일 격리) — 값은 Windows VK_* 와 동일(호스트가 VK 그대로 공급).
+// <Windows.h> 비포함(코어 컴파일 격리) - 값은 Windows VK_* 와 동일(호스트가 VK 그대로 공급).
 #pragma once
 
 
@@ -19,5 +19,6 @@ namespace dxgui
 	inline constexpr int DXG_VK_UP     = 0x26;	// VK_UP
 	inline constexpr int DXG_VK_DOWN   = 0x28;	// VK_DOWN
 	inline constexpr int DXG_VK_ESCAPE = 0x1B;	// VK_ESCAPE
+	inline constexpr int DXG_VK_SPACE  = 0x20;	// VK_SPACE
 
 } // namespace dxgui

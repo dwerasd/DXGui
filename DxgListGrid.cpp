@@ -46,6 +46,25 @@ namespace dxgui
 			});
 	}
 
+	// 보통 좌클릭과 방향키 이동이 공유하는 행 선택 - 다중 선택이면 표시를 그 행 하나로, 선택이 바뀔 때만 OnSelect, OnClick 은 매번.
+	void C_DXG_LISTGRID::pickRow_(int _r)
+	{
+		if (_r < 0 || _r >= static_cast<int>(m_vRows.size())) { return; }
+		if (m_vMark.size() != m_vRows.size()) { m_vMark.assign(m_vRows.size(), 0); }
+		if (m_bMulti)
+		{
+			std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));
+			m_vMark[_r] = 1;
+			m_nAnchor = _r;
+		}
+		if (m_nSelRow != _r)
+		{
+			m_nSelRow = _r;
+			if (m_OnSelect) { m_OnSelect(_r); }
+		}
+		if (m_OnClick) { m_OnClick(_r); }
+	}
+
 	C_DXG_LISTGRID::C_DXG_LISTGRID()
 		: m_hFont(INVALID_FONT)
 		, m_fRowH(22.0f)
@@ -118,6 +137,33 @@ namespace dxgui
 		m_ScrollV.SetMetrics(fContentH, (fBodyVisH > 0.0f) ? fBodyVisH : 0.0f);
 		m_ScrollH.SetMetrics(fTotalColW, fBodyW);
 
+		// 키보드 포커스 - 격자 안 좌클릭으로 얻고, 격자 밖 좌클릭(편집 칸·콤보 등 다른 위젯 포함)이나 Tab 으로 잃는다.
+		// 편집 칸이 포커스를 가진 동안은 그 칸을 누른 좌클릭이 격자 밖 클릭이라 여기서 이미 풀려 있다.
+		if (!m_bEnabled || _ctx.IsKeyPressed(DXG_VK_TAB)) { m_bKeyFocus = false; }
+		else if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bKeyFocus = _ctx.IsMouseHovered(abs_); }
+
+		// 위/아래 방향키(OS 키 반복 포함) - 보이는 행 안에서 한 칸씩 옮기고 좌클릭과 같은 경로(pickRow_)로 콜백을 발화한다.
+		// 선택이 없으면 첫 행, 처음/끝 행에서는 아무 일도 없다. 스크롤은 본문 그리기 전에 맞춘다.
+		if (m_bKeyFocus)
+		{
+			const int nStep_ = (_ctx.IsKeyPressed(DXG_VK_DOWN) ? 1 : 0) - (_ctx.IsKeyPressed(DXG_VK_UP) ? 1 : 0);
+			int nTo_ = -1;
+			if (nStep_ != 0 && nRows > 0)
+			{
+				if (m_nSelRow < 0 || m_nSelRow >= nRows) { nTo_ = 0; }
+				else if (m_nSelRow + nStep_ >= 0 && m_nSelRow + nStep_ < nRows) { nTo_ = m_nSelRow + nStep_; }
+			}
+			if (nTo_ >= 0)
+			{
+				this->pickRow_(nTo_);
+				this->ScrollToRow(m_nSelRow);
+			}
+			if (m_OnSpace && _ctx.IsKeyPressed(DXG_VK_SPACE) && m_nSelRow >= 0 && m_nSelRow < static_cast<int>(m_vRows.size()))
+			{
+				m_OnSpace(m_nSelRow);
+			}
+		}
+
 		// 휠(본문 위) → 세로 스크롤.
 		const float fWheel = _ctx.GetWheelDelta();
 		if (bV && fWheel != 0.0f && _ctx.IsMouseHovered(bodyAbs_))
@@ -163,18 +209,7 @@ namespace dxgui
 			}
 			else
 			{
-				if (r >= 0 && r < nRows && m_bMulti)
-				{
-					std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));
-					m_vMark[r] = 1;
-					m_nAnchor = r;
-				}
-				if (r >= 0 && r < nRows && m_nSelRow != r)
-				{
-					m_nSelRow = r;
-					if (m_OnSelect) { m_OnSelect(r); }
-				}
-				if (r >= 0 && r < nRows && m_OnClick) { m_OnClick(r); }
+				this->pickRow_(r);
 			}
 		}
 

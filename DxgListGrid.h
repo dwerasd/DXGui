@@ -66,6 +66,8 @@ namespace dxgui
 		std::function<void(int)> m_OnDblClick;	// 본문 행 더블클릭(행 인덱스) - 차트반영/관심추가 등 호출처 동작
 		std::function<void(int)> m_OnClick;		// 본문 행 좌클릭(행 인덱스) - 이미 선택된 행도 매번 발화(OnSelect 는 선택이 바뀔 때만)
 		std::function<void(float, float)> m_OnRightClick;	// 본문 우클릭(x,y 화면좌표) - 컨텍스트 메뉴 호출처
+		std::function<void(int)> m_OnSpace;		// 키보드 포커스 중 Space(선택 행 인덱스) - 체크 칸 토글 등 호출처 동작
+		bool  m_bKeyFocus{ false };				// 키보드 포커스 - 격자 안 좌클릭으로 얻고 격자 밖 좌클릭/Tab 으로 잃는다. Tab 순회 목록에는 들어가지 않는다
 
 		// 헤더 상호작용 - 정렬(클릭) / 컬럼 리사이즈(경계 드래그).
 		int   m_nSortCol{ -1 };		// 정렬 컬럼(-1=없음)
@@ -111,6 +113,10 @@ namespace dxgui
 		void SetOnDblClick(std::function<void(int)> _fn) { m_OnDblClick = std::move(_fn); }
 		// 본문 우클릭 콜백 - (x,y) 화면좌표 전달. 컨텍스트 메뉴는 호출처가 소유.
 		void SetOnRightClick(std::function<void(float, float)> _fn) { m_OnRightClick = std::move(_fn); }
+		// Space 콜백 - 키보드 포커스 중 선택 행이 있을 때 키 다운마다 발화(행 인덱스 전달). 미지정이면 Space 는 아무 일도 하지 않는다.
+		// 위/아래 방향키는 콜백 없이 선택을 한 칸 옮기며 좌클릭과 같은 OnSelect/OnClick 을 발화한다(더블클릭은 발화하지 않는다).
+		void SetOnSpace(std::function<void(int)> _fn) { m_OnSpace = std::move(_fn); }
+		bool HasKeyFocus() const { return m_bKeyFocus; }
 		void SetColors(_DXG_COLOR _hdrBg, _DXG_COLOR _hdrText, _DXG_COLOR _line,
 			_DXG_COLOR _rowBg, _DXG_COLOR _rowAltBg, _DXG_COLOR _selBg, _DXG_COLOR _selText)
 		{
@@ -208,6 +214,7 @@ namespace dxgui
 			float _colX, float _colW, float _top, float _h, E_DXG_TEXT_ALIGN _align);
 		float effColW_(int _c, float _fBodyW) const;	// 컬럼 유효폭(stretch 모드면 마지막=남은폭)
 		void sortRows_();	// m_nSortCol/m_bSortAsc 기준 행 정렬(숫자/문자 자동)
+		void pickRow_(int _r);	// 보통 좌클릭과 방향키가 공유하는 행 선택(표시 갱신 + OnSelect(선택이 바뀔 때만) + OnClick)
 	};
 
 } // namespace dxgui
