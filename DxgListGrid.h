@@ -43,6 +43,28 @@ namespace dxgui
 		_DXG_GRID_CELL() : textColor(Theme().textMain), bgColor(0u), nBadge(255u) {}
 	};
 
+	// 방향키 연속 이동(OS 키 반복)의 정착 판정 - 시각(ms)을 호출자가 넣는 순수 상태.
+	// 이동마다 보류로 기록하고, 방향키를 놓았거나 마지막 이동 뒤 _nSettleMs 동안 이동이 없으면 한 번만 발화 시점이 된다.
+	struct _DXG_KEY_SETTLE
+	{
+		bool     bPending{ false };
+		uint64_t nLastMoveMs{ 0 };
+
+		void OnMove(uint64_t _nNowMs) { bPending = true; nLastMoveMs = _nNowMs; }
+		// true = 지금 보류분을 발화(보류를 비운다). _bArrowHeld = 위/아래 키가 아직 눌려 있는가.
+		bool Poll(uint64_t _nNowMs, uint32_t _nSettleMs, bool _bArrowHeld)
+		{
+			if (!bPending) { return false; }
+			if (_bArrowHeld && (_nNowMs - nLastMoveMs) < _nSettleMs) { return false; }
+			bPending = false;
+			return true;
+		}
+		void Cancel() { bPending = false; }
+	};
+
+	// SetKeySettleMs 에 넘기는 권장 정착 대기 - 키 반복 간격(약 30ms)보다 충분히 길고 한 번 누름의 체감 지연으로는 짧은 값.
+	inline constexpr uint32_t DXG_KEY_SETTLE_MS = 150;
+
 
 	class C_DXG_LISTGRID : public C_DXG_WIDGET
 	{
@@ -64,10 +86,15 @@ namespace dxgui
 		C_DXG_SCROLLBAR m_ScrollH;	// 임베드 가로 스크롤바(컬럼폭 합 > 본문폭 일 때)
 		std::function<void(int)> m_OnSelect;
 		std::function<void(int)> m_OnDblClick;	// 본문 행 더블클릭(행 인덱스) - 차트반영/관심추가 등 호출처 동작
-		std::function<void(int)> m_OnClick;		// 본문 행 좌클릭(행 인덱스) - 이미 선택된 행도 매번 발화(OnSelect 는 선택이 바뀔 때만)
+		std::function<void(int)> m_OnClick;		// 본문 행 좌클릭 또는 방향키 이동(행 인덱스) - 이미 선택된 행도 매번 발화(OnSelect 는 선택이 바뀔 때만)
 		std::function<void(float, float)> m_OnRightClick;	// 본문 우클릭(x,y 화면좌표) - 컨텍스트 메뉴 호출처
 		std::function<void(int)> m_OnSpace;		// 키보드 포커스 중 Space(선택 행 인덱스) - 체크 칸 토글 등 호출처 동작
-		bool  m_bKeyFocus{ false };				// 키보드 포커스 - 격자 안 좌클릭으로 얻고 격자 밖 좌클릭/Tab 으로 잃는다. Tab 순회 목록에는 들어가지 않는다
+		bool  m_bKeyFocus{ false };				// 키보드 포커스 - 격자 안 좌클릭으로 얻고 격자 밖 좌클릭/Tab 으로 잃는다. Tab 순회 목록에는 들어가지 않는다.
+												// 컨텍스트(호스트 창)당 한 격자만 가진다 - 숨겨졌거나 그려지지 않은 격자는 EndKeyFrame 에서 잃는다
+		bool  m_bSpaceHeld{ false };			// 직전 그린 프레임에 Space 가 눌려 있었는가 - 키 반복으로 OnSpace 가 연발되지 않게 첫 누름만 통과
+		uint32_t m_nKeySettleMs{ 0 };			// 방향키 연속 이동의 정착 대기(ms). 0 = 이동마다 즉시 발화(기본)
+		_DXG_KEY_SETTLE m_Settle;				// 정착 대기 중인 방향키 이동(m_nKeySettleMs > 0 일 때만 쓴다)
+		int   m_nPendBase{ -1 };				// 보류 시작 때 호출처가 아는 선택 행 - 정착 뒤 OnSelect 가 바뀌었는지 가르는 기준
 
 		// 헤더 상호작용 - 정렬(클릭) / 컬럼 리사이즈(경계 드래그).
 		int   m_nSortCol{ -1 };		// 정렬 컬럼(-1=없음)
@@ -88,6 +115,10 @@ namespace dxgui
 
 	public:
 		C_DXG_LISTGRID();
+		~C_DXG_LISTGRID() override;
+
+		// 호스트 매니저가 프레임 끝에 부른다 - 이 컨텍스트의 키보드 포커스 격자가 이번 프레임에 그려지지 않았으면(숨김 등) 포커스를 푼다.
+		static void EndKeyFrame(const IDrawContext& _ctx);
 
 		void SetFont(FontHandle _h)        { m_hFont = _h; }
 		void SetRowHeight(float _h)        { m_fRowH = _h; }
@@ -108,14 +139,19 @@ namespace dxgui
 		}
 		void SetOnSelect(std::function<void(int)> _fn) { m_OnSelect = std::move(_fn); }
 		// 행 좌클릭 콜백 - 유효 행 클릭마다 발화(이미 선택된 행 재클릭 포함). 선택 갱신·OnSelect 뒤에 호출되며 OnSelect 를 대체하지 않는다.
+		// 포커스 중 위/아래 방향키로 행을 옮길 때도 발화한다(마우스 이벤트 없는 프레임 - 콜백 안에서 마우스 상태를 가정하지 말 것).
 		void SetOnClick(std::function<void(int)> _fn) { m_OnClick = std::move(_fn); }
 		// 행 더블클릭 콜백 - 행 인덱스 전달. 단일클릭(선택)과 별개로 발화(HTS 식).
 		void SetOnDblClick(std::function<void(int)> _fn) { m_OnDblClick = std::move(_fn); }
 		// 본문 우클릭 콜백 - (x,y) 화면좌표 전달. 컨텍스트 메뉴는 호출처가 소유.
 		void SetOnRightClick(std::function<void(float, float)> _fn) { m_OnRightClick = std::move(_fn); }
-		// Space 콜백 - 키보드 포커스 중 선택 행이 있을 때 키 다운마다 발화(행 인덱스 전달). 미지정이면 Space 는 아무 일도 하지 않는다.
+		// Space 콜백 - 키보드 포커스 중 선택 행이 있을 때 Space 를 누를 때마다 한 번 발화(행 인덱스 전달, 키 반복은 무시). 미지정이면 Space 는 아무 일도 하지 않는다.
 		// 위/아래 방향키는 콜백 없이 선택을 한 칸 옮기며 좌클릭과 같은 OnSelect/OnClick 을 발화한다(더블클릭은 발화하지 않는다).
+		// 다중 선택 격자는 표시가 선택 행 하나뿐일 때만 표시가 따라가고, Ctrl/Shift 로 만든 표시 집합은 지우지 않고 선택 행(테두리로 표시)만 옮긴다.
 		void SetOnSpace(std::function<void(int)> _fn) { m_OnSpace = std::move(_fn); }
+		// 방향키 연속 이동(OS 키 반복)의 정착 대기(ms). 0(기본) = 이동마다 OnSelect/OnClick 즉시. 0 초과 = 선택 행은 바로 옮기되
+		// OnSelect/OnClick 은 방향키를 놓았거나 마지막 이동 뒤 이 시간 동안 이동이 없을 때 최종 행으로 한 번만 발화한다(행마다 무거운 일을 하는 호출처용).
+		void SetKeySettleMs(uint32_t _nMs) { m_nKeySettleMs = _nMs; if (_nMs == 0) { m_Settle.Cancel(); } }
 		bool HasKeyFocus() const { return m_bKeyFocus; }
 		void SetColors(_DXG_COLOR _hdrBg, _DXG_COLOR _hdrText, _DXG_COLOR _line,
 			_DXG_COLOR _rowBg, _DXG_COLOR _rowAltBg, _DXG_COLOR _selBg, _DXG_COLOR _selText)
@@ -130,7 +166,7 @@ namespace dxgui
 		void ClearColumns() { m_vCols.clear(); }
 
 		// 행 구성 - AddRow 후 SetCell. 셀은 컬럼 수만큼 자동 확보.
-		void ClearRows() { m_vRows.clear(); m_nSelRow = -1; m_vMark.clear(); m_nAnchor = -1; }
+		void ClearRows() { m_vRows.clear(); m_nSelRow = -1; m_vMark.clear(); m_nAnchor = -1; m_Settle.Cancel(); }
 		int  AddRow()
 		{
 			m_vRows.emplace_back(m_vCols.size());
@@ -165,6 +201,7 @@ namespace dxgui
 		void   SetSelectedRow(int _r)
 		{
 			m_nSelRow = _r;
+			m_Settle.Cancel();	// 호출처가 직접 정한 선택 - 보류 중이던 방향키 이동 알림은 버린다
 			if (m_bMulti)	// 다중 선택이면 표시도 그 행 하나로
 			{
 				std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));
@@ -214,7 +251,10 @@ namespace dxgui
 			float _colX, float _colW, float _top, float _h, E_DXG_TEXT_ALIGN _align);
 		float effColW_(int _c, float _fBodyW) const;	// 컬럼 유효폭(stretch 모드면 마지막=남은폭)
 		void sortRows_();	// m_nSortCol/m_bSortAsc 기준 행 정렬(숫자/문자 자동)
-		void pickRow_(int _r);	// 보통 좌클릭과 방향키가 공유하는 행 선택(표시 갱신 + OnSelect(선택이 바뀔 때만) + OnClick)
+		void pickRow_(int _r);	// 보통 좌클릭 행 선택(표시 갱신 + OnSelect(선택이 바뀔 때만) + OnClick)
+		void keyMove_(int _nTo);	// 위/아래 방향키 행 이동 - 선택 행을 옮기고 pickRow_ 와 같은 콜백을 즉시(m_nKeySettleMs == 0) 또는 정착 뒤(flushKeyPick_) 발화
+		void flushKeyPick_();	// 정착한 방향키 이동의 OnSelect(호출처가 아는 선택에서 바뀐 때만) + OnClick
+		void setKeyFocus_(IDrawContext& _ctx, bool _bFocus);	// 키보드 포커스 설정/해제 - 얻으면 이 컨텍스트의 소유자가 된다
 	};
 
 } // namespace dxgui

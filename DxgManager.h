@@ -9,6 +9,7 @@
 #include "DxgComboBox.h"	// CloseAllPopups — 루트 콤보 드롭다운 강제 닫기
 #include "DxgMenu.h"		// CloseAllPopups — 루트 메뉴 드롭다운 강제 닫기
 #include "DxgColorField.h"	// CloseAllPopups — 루트 색필드 팝업 강제 닫기
+#include "DxgListGrid.h"	// EndKeyFrame - 숨겨진 격자의 키보드 포커스 해제
 
 #include <vector>
 #include <memory>
@@ -164,6 +165,7 @@ namespace dxgui
 			{
 				if (pRoot_ && pRoot_->IsVisible()) { pRoot_->RenderOverlay(_ctx, origin_); }
 			}
+			C_DXG_LISTGRID::EndKeyFrame(_ctx);	// 이번 프레임에 그려지지 않은(숨김) 목록 격자의 키보드 포커스를 푼다
 		}
 	};
 

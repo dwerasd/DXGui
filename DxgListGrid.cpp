@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <chrono>
 #include <cwchar>
 
 
@@ -11,6 +12,38 @@ namespace dxgui
 {
 	namespace
 	{
+		// 컨텍스트(호스트 창)별 키보드 포커스 소유 격자 - 키를 받는 격자는 컨텍스트당 하나.
+		// CEILING: 컨텍스트 수만큼 선형 탐색(창 수십 개 이하 전제). 컨텍스트는 만든 UI 스레드에서만 그리므로 스레드마다 따로 둔다.
+		struct _KEY_OWNER_SLOT
+		{
+			const IDrawContext*   pCtx;
+			const C_DXG_LISTGRID* pOwner;
+			bool                  bSeen;	// 이번 프레임에 소유자가 보이는 채로 그려졌는가
+		};
+
+		// 스레드 종료·정적 소멸 순서와 무관하게 격자 소멸자가 접근할 수 있도록 목록은 해제하지 않는다(스레드당 포인터 하나).
+		std::vector<_KEY_OWNER_SLOT>& keySlots_()
+		{
+			thread_local std::vector<_KEY_OWNER_SLOT>* pSlots_ = nullptr;
+			if (pSlots_ == nullptr) { pSlots_ = new std::vector<_KEY_OWNER_SLOT>(); }
+			return *pSlots_;
+		}
+
+		_KEY_OWNER_SLOT* findKeySlot_(const IDrawContext* _pCtx, bool _bCreate)
+		{
+			std::vector<_KEY_OWNER_SLOT>& v_ = keySlots_();
+			for (_KEY_OWNER_SLOT& s_ : v_) { if (s_.pCtx == _pCtx) { return &s_; } }
+			if (!_bCreate) { return nullptr; }
+			v_.push_back(_KEY_OWNER_SLOT{ _pCtx, nullptr, false });
+			return &v_.back();
+		}
+
+		uint64_t nowMs_()
+		{
+			return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::steady_clock::now().time_since_epoch()).count());
+		}
+
 		// 셀 비교 - 둘 다 완전 숫자면 수치, 아니면 문자열(wcscmp). 음수=a<b.
 		int cellCompare_(const std::wstring& _a, const std::wstring& _b)
 		{
@@ -46,23 +79,90 @@ namespace dxgui
 			});
 	}
 
-	// 보통 좌클릭과 방향키 이동이 공유하는 행 선택 - 다중 선택이면 표시를 그 행 하나로, 선택이 바뀔 때만 OnSelect, OnClick 은 매번.
+	// 보통 좌클릭 행 선택 - 다중 선택이면 표시를 그 행 하나로, 선택이 바뀔 때만 OnSelect, OnClick 은 매번.
 	void C_DXG_LISTGRID::pickRow_(int _r)
 	{
 		if (_r < 0 || _r >= static_cast<int>(m_vRows.size())) { return; }
 		if (m_vMark.size() != m_vRows.size()) { m_vMark.assign(m_vRows.size(), 0); }
+		// 보류 중이던 방향키 이동이 있으면 호출처가 아는 선택은 보류 시작 때의 행이다 - 클릭이 그 보류를 대신한다
+		const int nPrev_ = m_Settle.bPending ? m_nPendBase : m_nSelRow;
+		m_Settle.Cancel();
 		if (m_bMulti)
 		{
 			std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));
 			m_vMark[_r] = 1;
 			m_nAnchor = _r;
 		}
-		if (m_nSelRow != _r)
-		{
-			m_nSelRow = _r;
-			if (m_OnSelect) { m_OnSelect(_r); }
-		}
+		m_nSelRow = _r;
+		if (nPrev_ != _r && m_OnSelect) { m_OnSelect(_r); }
 		if (m_OnClick) { m_OnClick(_r); }
+	}
+
+	// 위/아래 방향키 행 이동. 다중 선택이면 표시가 선택 행 하나(또는 없음)뿐일 때는 클릭처럼 표시가 따라가고,
+	// Ctrl/Shift 로 만든 표시 집합은 지우지 않고 선택 행만 옮긴다(삭제 대상 표시 보존).
+	void C_DXG_LISTGRID::keyMove_(int _nTo)
+	{
+		if (_nTo < 0 || _nTo >= static_cast<int>(m_vRows.size())) { return; }
+		if (m_vMark.size() != m_vRows.size()) { m_vMark.assign(m_vRows.size(), 0); }
+		const int nFrom_ = m_nSelRow;
+		if (m_bMulti)
+		{
+			int nMarked_ = 0;
+			for (const uint8_t u_ : m_vMark) { nMarked_ += (u_ != 0) ? 1 : 0; }
+			const bool bFollow_ = (nMarked_ == 0) || (nMarked_ == 1 && this->IsRowMarked(nFrom_));
+			if (bFollow_)
+			{
+				std::fill(m_vMark.begin(), m_vMark.end(), static_cast<uint8_t>(0));
+				m_vMark[_nTo] = 1;
+			}
+			m_nAnchor = _nTo;
+		}
+		m_nSelRow = _nTo;
+		if (m_nKeySettleMs == 0)
+		{
+			if (nFrom_ != _nTo && m_OnSelect) { m_OnSelect(_nTo); }
+			if (m_OnClick) { m_OnClick(_nTo); }
+			return;
+		}
+		if (!m_Settle.bPending) { m_nPendBase = nFrom_; }
+		m_Settle.OnMove(nowMs_());
+	}
+
+	void C_DXG_LISTGRID::flushKeyPick_()
+	{
+		const int nSel_ = m_nSelRow;
+		if (nSel_ < 0 || nSel_ >= static_cast<int>(m_vRows.size())) { return; }
+		if (nSel_ != m_nPendBase && m_OnSelect) { m_OnSelect(nSel_); }
+		if (m_OnClick) { m_OnClick(nSel_); }
+	}
+
+	void C_DXG_LISTGRID::setKeyFocus_(IDrawContext& _ctx, bool _bFocus)
+	{
+		m_bKeyFocus = _bFocus;
+		if (_bFocus)
+		{
+			_KEY_OWNER_SLOT* pSlot_ = findKeySlot_(&_ctx, true);
+			pSlot_->pOwner = this;
+			pSlot_->bSeen = true;
+		}
+		else
+		{
+			_KEY_OWNER_SLOT* pSlot_ = findKeySlot_(&_ctx, false);
+			if (pSlot_ != nullptr && pSlot_->pOwner == this) { pSlot_->pOwner = nullptr; }
+		}
+	}
+
+	void C_DXG_LISTGRID::EndKeyFrame(const IDrawContext& _ctx)
+	{
+		_KEY_OWNER_SLOT* pSlot_ = findKeySlot_(&_ctx, false);
+		if (pSlot_ == nullptr) { return; }
+		if (pSlot_->pOwner != nullptr && !pSlot_->bSeen) { pSlot_->pOwner = nullptr; }
+		pSlot_->bSeen = false;
+	}
+
+	C_DXG_LISTGRID::~C_DXG_LISTGRID()
+	{
+		for (_KEY_OWNER_SLOT& s_ : keySlots_()) { if (s_.pOwner == this) { s_.pOwner = nullptr; } }
 	}
 
 	C_DXG_LISTGRID::C_DXG_LISTGRID()
@@ -139,11 +239,21 @@ namespace dxgui
 
 		// 키보드 포커스 - 격자 안 좌클릭으로 얻고, 격자 밖 좌클릭(편집 칸·콤보 등 다른 위젯 포함)이나 Tab 으로 잃는다.
 		// 편집 칸이 포커스를 가진 동안은 그 칸을 누른 좌클릭이 격자 밖 클릭이라 여기서 이미 풀려 있다.
-		if (!m_bEnabled || _ctx.IsKeyPressed(DXG_VK_TAB)) { m_bKeyFocus = false; }
-		else if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { m_bKeyFocus = _ctx.IsMouseHovered(abs_); }
+		// 키를 받는 격자는 컨텍스트당 하나 - 다른 격자가 포커스를 가져갔거나(소유자 아님) 숨겨져 그려지지 않은 동안 소유자 자리를
+		// 매니저가 풀었으면(EndKeyFrame) 낡은 포커스는 여기서 버린다. 포커스를 가진 채 그려진 프레임은 소유자 생존으로 기록한다.
+		if (!m_bEnabled || _ctx.IsKeyPressed(DXG_VK_TAB)) { this->setKeyFocus_(_ctx, false); }
+		else if (_ctx.IsMouseClicked(DXG_MOUSE_LEFT)) { this->setKeyFocus_(_ctx, _ctx.IsMouseHovered(abs_)); }
+		else if (m_bKeyFocus)
+		{
+			_KEY_OWNER_SLOT* pSlot_ = findKeySlot_(&_ctx, false);
+			if (pSlot_ == nullptr || pSlot_->pOwner != this) { m_bKeyFocus = false; }
+			else { pSlot_->bSeen = true; }
+		}
 
-		// 위/아래 방향키(OS 키 반복 포함) - 보이는 행 안에서 한 칸씩 옮기고 좌클릭과 같은 경로(pickRow_)로 콜백을 발화한다.
+		// 위/아래 방향키(OS 키 반복 포함) - 보이는 행 안에서 한 칸씩 옮기고 좌클릭과 같은 콜백(keyMove_)을 발화한다.
 		// 선택이 없으면 첫 행, 처음/끝 행에서는 아무 일도 없다. 스크롤은 본문 그리기 전에 맞춘다.
+		// Space 는 누를 때마다 한 번(키 반복으로 들어오는 에지는 직전 프레임에도 눌려 있었으므로 무시).
+		const bool bSpaceDown_ = _ctx.IsKeyDown(DXG_VK_SPACE);
 		if (m_bKeyFocus)
 		{
 			const int nStep_ = (_ctx.IsKeyPressed(DXG_VK_DOWN) ? 1 : 0) - (_ctx.IsKeyPressed(DXG_VK_UP) ? 1 : 0);
@@ -155,13 +265,20 @@ namespace dxgui
 			}
 			if (nTo_ >= 0)
 			{
-				this->pickRow_(nTo_);
+				this->keyMove_(nTo_);
 				this->ScrollToRow(m_nSelRow);
 			}
-			if (m_OnSpace && _ctx.IsKeyPressed(DXG_VK_SPACE) && m_nSelRow >= 0 && m_nSelRow < static_cast<int>(m_vRows.size()))
+			if (m_OnSpace && !m_bSpaceHeld && _ctx.IsKeyPressed(DXG_VK_SPACE) && m_nSelRow >= 0 && m_nSelRow < static_cast<int>(m_vRows.size()))
 			{
 				m_OnSpace(m_nSelRow);
 			}
+		}
+		m_bSpaceHeld = bSpaceDown_;
+		// 정착 대기 중인 방향키 이동 - 키를 놓았거나 이동이 멎었으면 최종 행으로 한 번 발화(포커스를 잃은 뒤에도 보류분은 마저 낸다)
+		if (m_Settle.bPending
+			&& m_Settle.Poll(nowMs_(), m_nKeySettleMs, _ctx.IsKeyDown(DXG_VK_UP) || _ctx.IsKeyDown(DXG_VK_DOWN)))
+		{
+			this->flushKeyPick_();
 		}
 
 		// 휠(본문 위) → 세로 스크롤.
@@ -228,7 +345,7 @@ namespace dxgui
 			const _DXG_POINT mp = _ctx.GetMousePos();
 			const int r = (m_fRowH > 0.0f)
 				? static_cast<int>(::floorf((mp.y - fBodyTop + fScrollY) / m_fRowH)) : -1;
-			if (r >= 0 && r < nRows) { m_nSelRow = r; }
+			if (r >= 0 && r < nRows) { m_nSelRow = r; m_Settle.Cancel(); }
 			m_OnRightClick(mp.x, mp.y);
 		}
 
@@ -287,6 +404,10 @@ namespace dxgui
 						}
 					}
 					fCx += fCw;
+				}
+				if (m_bMulti && !bSel_ && r == m_nSelRow)	// 방향키로 옮긴 선택 행이 표시 집합 밖이면 테두리로 위치만 보인다
+				{
+					_ctx.DrawRectOutline(_DXG_RECT(abs_.x + 1.0f, fRowY + 1.0f, fBodyW - 2.0f, m_fRowH - 2.0f), m_SelText, 1.0f);
 				}
 				if (m_bGridLines)
 				{
